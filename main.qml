@@ -10,7 +10,7 @@ ApplicationWindow {
     minimumWidth: 600
     minimumHeight: 400
     visible: true
-    title: "Simple Notes - Ultra Keyboard Friendly"
+    title: "LEAF - Ultra Keyboard Friendly"
     
     Colors {
         id: colors
@@ -854,7 +854,7 @@ ApplicationWindow {
                             if (notesManager.setupFirstCollection(text)) {
                                 showingFirstTimeSetup = false
                                 appState.modal = "none"
-                                notification.show("Collection '" + text + "' created! Welcome to Simple Notes!", "success")
+                                notification.show("Collection '" + text + "' created! Welcome to LEAF!", "success")
                             } else {
                                 notification.show("Could not create collection. Please try again.", "error")
                             }
@@ -876,7 +876,7 @@ ApplicationWindow {
                             if (notesManager.setupFirstCollection(firstCollectionField.text)) {
                                 showingFirstTimeSetup = false
                                 appState.modal = "none"
-                                notification.show("Collection '" + firstCollectionField.text + "' created! Welcome to Simple Notes!", "success")
+                                notification.show("Collection '" + firstCollectionField.text + "' created! Welcome to LEAF!", "success")
                             } else {
                                 notification.show("Could not create collection. Please try again.", "error")
                             }
@@ -2715,7 +2715,7 @@ ApplicationWindow {
                                     Layout.fillWidth: true
 
                                     Text {
-                                        text: (notesManager.currentCollection || "Simple Notes") + (notesManager.searchText.trim() !== "" ? " - Search Mode" : "")
+                                        text: (notesManager.currentCollection || "LEAF") + (notesManager.searchText.trim() !== "" ? " - Search Mode" : "")
                                         font.family: notesManager.config.fontFamily
                                         font.pixelSize: 24
                                         color: colors.textColor
