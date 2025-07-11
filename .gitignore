@@ -9,3 +9,5 @@ ENV/
 .env
 .venv
 .claude
+collections/
+collections.json
