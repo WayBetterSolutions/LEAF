@@ -78,6 +78,7 @@ class NotesManager(QAbstractListModel):
         # Collections state
         self._collections = []
         self._current_collection = ""
+        self._collection_settings = {}  # Per-collection layout settings
         
         # Notes state (per collection)
         self._notes = []
@@ -89,7 +90,7 @@ class NotesManager(QAbstractListModel):
         # Config state
         self._config = {}
         
-        print("=== Notes Manager Initialization ===")
+        # Initialize Notes Manager
         
         # Initialize everything in the right order
         self._ensure_directories_exist()
@@ -99,22 +100,23 @@ class NotesManager(QAbstractListModel):
 
         # Handle first-time setup or load existing collections
         if self._needs_first_collection_setup():
-            print("📝 No collections found - will prompt user for first collection")
+            # No collections found - will prompt user for first collection
             # Don't create any files yet - wait for user input
+            pass
         else:
             self._ensure_all_collection_files_exist()
             self.load_notes()
         
-        print("=== Initialization Complete ===")
+        # Initialization complete
 
     def _ensure_directories_exist(self):
         """Ensure all necessary directories exist"""
         try:
             if not os.path.exists(self.collections_dir):
                 os.makedirs(self.collections_dir)
-                print(f"✓ Created collections directory: {self.collections_dir}")
+                pass  # Created collections directory
             else:
-                print(f"✓ Collections directory already exists: {self.collections_dir}")
+                pass  # Collections directory exists
         except Exception as e:
             print(f"✗ Error creating collections directory: {e}")
             self.loadError.emit(f"Cannot create collections directory: {e}")
@@ -126,7 +128,7 @@ class NotesManager(QAbstractListModel):
         for legacy_file in legacy_files:
             if os.path.exists(legacy_file):
                 try:
-                    print(f"📦 Found legacy file: {legacy_file}")
+                    pass  # Found legacy file
                     
                     # Read old notes
                     with open(legacy_file, 'r', encoding='utf-8') as f:
@@ -138,7 +140,7 @@ class NotesManager(QAbstractListModel):
                     
                     # Skip if empty
                     if not old_notes:
-                        print(f"📝 Legacy file {legacy_file} is empty, removing...")
+                        pass  # Removing empty legacy file
                         os.remove(legacy_file)
                         continue
                     
@@ -149,7 +151,7 @@ class NotesManager(QAbstractListModel):
                         # Use filename without extension as collection name
                         collection_name = os.path.splitext(legacy_file)[0].title()
                     
-                    print(f"📦 Migrating {legacy_file} to collection '{collection_name}'...")
+                    pass  # Migrating legacy file
                     
                     # Ensure collections directory exists
                     self._ensure_directories_exist()
@@ -171,8 +173,8 @@ class NotesManager(QAbstractListModel):
                     backup_file = f"{legacy_file}.backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
                     os.rename(legacy_file, backup_file)
                     
-                    print(f"✓ Migrated {legacy_file} to collection '{collection_name}'")
-                    print(f"✓ Backup created: {backup_file}")
+                    pass  # Migration completed
+                    pass  # Backup created
                     
                 except Exception as e:
                     print(f"✗ Error migrating {legacy_file}: {e}")
@@ -200,7 +202,7 @@ class NotesManager(QAbstractListModel):
             with open(collection_file, 'w', encoding='utf-8') as f:
                 json.dump([], f, indent=2, ensure_ascii=False)
             
-            print(f"✓ Created collection file: {collection_file}")
+            pass  # Created collection file
             return True
             
         except PermissionError:
@@ -216,16 +218,16 @@ class NotesManager(QAbstractListModel):
 
     def _ensure_all_collection_files_exist(self):
         """Ensure all collections have corresponding JSON files"""
-        print(f"🔍 Checking collection files for {len(self._collections)} collections...")
+        # Checking collection files
         
         for collection_name in self._collections:
             collection_file = self.get_collection_file_path(collection_name)
             
             if not os.path.exists(collection_file):
-                print(f"📝 Creating missing collection file for: {collection_name}")
+                pass  # Creating missing collection file
                 self._create_collection_file(collection_name)
             else:
-                print(f"✓ Collection file exists: {collection_file}")
+                pass  # Collection file exists
 
     def _needs_first_collection_setup(self):
         """Check if we need to prompt user for first collection"""
@@ -248,6 +250,12 @@ class NotesManager(QAbstractListModel):
         self._collections = [clean_name]
         self._current_collection = clean_name
         
+        # Initialize collection settings
+        self._collection_settings[clean_name] = {
+            "cardWidth": self._config.get("cardWidth", 381),
+            "cardHeight": self._config.get("cardHeight", 120)
+        }
+        
         # Create the collection file
         if self._create_collection_file(clean_name):
             if self.save_collections():
@@ -259,7 +267,7 @@ class NotesManager(QAbstractListModel):
                 self._next_id = 0
                 self.notesChanged.emit()
                 self.filteredNotesChanged.emit()
-                print(f"✓ Set up first collection: {clean_name}")
+                pass  # Set up first collection
                 return True
         
         return False
@@ -348,8 +356,6 @@ class NotesManager(QAbstractListModel):
                 "decreaseFontSize": "Ctrl+-",
                 "increaseCardFontSize": "Ctrl+9",
                 "decreaseCardFontSize": "Ctrl+0",
-                "increaseCardWidth": "Ctrl+Shift+Right",
-                "decreaseCardWidth": "Ctrl+Shift+Left",
                 "increaseCardHeight": "Ctrl+Shift+Down",
                 "decreaseCardHeight": "Ctrl+Shift+Up",
                 "themeCycle": "Ctrl+T",
@@ -379,12 +385,12 @@ class NotesManager(QAbstractListModel):
                     
                     # Validate configuration
                     self._config = self.validate_config(loaded_config, default_config)
-                    print("✓ Loaded existing config.json")
+                    pass  # Loaded existing config
             else:
                 # No config file exists, create it
                 self._config = default_config
                 self.save_config()
-                print("✓ Created new config.json with defaults")
+                pass  # Created new config
                 
         except json.JSONDecodeError:
             self.loadError.emit("Configuration file is corrupted. Using defaults.")
@@ -404,37 +410,59 @@ class NotesManager(QAbstractListModel):
                     collections_data = json.load(f)
                     self._collections = collections_data.get("collections", [])
                     self._current_collection = collections_data.get("currentCollection", "")
-                print(f"✓ Loaded existing collections.json with {len(self._collections)} collections")
+                    self._collection_settings = collections_data.get("collectionSettings", {})
+                pass  # Loaded existing collections
             else:
                 # No collections file exists - will prompt user for first collection
                 self._collections = []
                 self._current_collection = ""
-                print("📝 No collections.json found - starting fresh")
+                self._collection_settings = {}
+                pass  # No collections.json found
                 
             # Ensure current collection exists in the list (if we have collections)
             if self._collections and self._current_collection not in self._collections:
                 self._current_collection = self._collections[0] if self._collections else ""
+            
+            # Initialize collection settings for existing collections that don't have them
+            for collection_name in self._collections:
+                if collection_name not in self._collection_settings:
+                    self._collection_settings[collection_name] = {
+                        "cardWidth": self._config.get("cardWidth", 381),
+                        "cardHeight": self._config.get("cardHeight", 120)
+                    }
+                else:
+                    # Ensure existing collections have cardHeight if they don't
+                    if "cardHeight" not in self._collection_settings[collection_name]:
+                        self._collection_settings[collection_name]["cardHeight"] = self._config.get("cardHeight", 120)
                     
-            print(f"📂 Collections: {self._collections}")
-            print(f"📍 Current collection: {self._current_collection}")
+            # Apply the current collection's layout settings to global config
+            if self._current_collection and self._current_collection in self._collection_settings:
+                collection_settings = self._collection_settings[self._current_collection]
+                if "cardWidth" in collection_settings:
+                    self._config["cardWidth"] = collection_settings["cardWidth"]
+                if "cardHeight" in collection_settings:
+                    self._config["cardHeight"] = collection_settings["cardHeight"]
                     
         except json.JSONDecodeError:
             self.loadError.emit("Collections file is corrupted. Starting fresh.")
             self._backup_file(self.collections_file)
             self._collections = []
             self._current_collection = ""
+            self._collection_settings = {}
         except Exception as e:
             print(f"✗ Error loading collections: {e}")
             self.loadError.emit(f"Error loading collections: {str(e)}")
             self._collections = []
             self._current_collection = ""
+            self._collection_settings = {}
 
     def save_collections(self):
         """Save collections metadata"""
         try:
             collections_data = {
                 "collections": self._collections,
-                "currentCollection": self._current_collection
+                "currentCollection": self._current_collection,
+                "collectionSettings": self._collection_settings
             }
             
             # Use temporary file for atomic write
@@ -444,16 +472,84 @@ class NotesManager(QAbstractListModel):
             
             # Atomic rename
             os.replace(temp_file, self.collections_file)
-            print(f"✓ Saved collections.json")
+            pass  # Saved collections
             return True
         except Exception as e:
             print(f"✗ Error saving collections: {e}")
             return False
 
+    def _get_current_collection_card_width(self):
+        """Get the card width for the current collection"""
+        if not self._current_collection:
+            return self._config.get("cardWidth", 381)
+        
+        if self._current_collection not in self._collection_settings:
+            # Initialize settings for this collection
+            self._collection_settings[self._current_collection] = {
+                "cardWidth": self._config.get("cardWidth", 381),
+                "cardHeight": self._config.get("cardHeight", 120)
+            }
+        
+        return self._collection_settings[self._current_collection].get("cardWidth", 381)
+
+    def _get_current_collection_card_height(self):
+        """Get the card height for the current collection"""
+        if not self._current_collection:
+            return self._config.get("cardHeight", 120)
+        
+        if self._current_collection not in self._collection_settings:
+            # Initialize settings for this collection
+            self._collection_settings[self._current_collection] = {
+                "cardWidth": self._config.get("cardWidth", 381),
+                "cardHeight": self._config.get("cardHeight", 120)
+            }
+        
+        return self._collection_settings[self._current_collection].get("cardHeight", 120)
+
+    def _set_current_collection_card_width(self, width):
+        """Set the card width for the current collection"""
+        if not self._current_collection:
+            return
+        
+        if self._current_collection not in self._collection_settings:
+            self._collection_settings[self._current_collection] = {
+                "cardHeight": self._config.get("cardHeight", 120)
+            }
+        
+        self._collection_settings[self._current_collection]["cardWidth"] = width
+        
+        # Also update the global config for immediate UI update
+        self._config["cardWidth"] = width
+        
+        # Save both collections and config
+        self.save_collections()
+        self.save_config()
+        self.configChanged.emit()
+
+    def _set_current_collection_card_height(self, height):
+        """Set the card height for the current collection"""
+        if not self._current_collection:
+            return
+        
+        if self._current_collection not in self._collection_settings:
+            self._collection_settings[self._current_collection] = {
+                "cardWidth": self._config.get("cardWidth", 381)
+            }
+        
+        self._collection_settings[self._current_collection]["cardHeight"] = height
+        
+        # Also update the global config for immediate UI update
+        self._config["cardHeight"] = height
+        
+        # Save both collections and config
+        self.save_collections()
+        self.save_config()
+        self.configChanged.emit()
+
     def load_notes(self):
         """Load notes for current collection"""
         if not self._current_collection:
-            print("⚠️ No current collection set, skipping note loading")
+            pass  # No current collection
             self._notes = []
             self._filtered_notes = []
             self._next_id = 0
@@ -464,7 +560,7 @@ class NotesManager(QAbstractListModel):
             return
 
         notes_file = self.get_collection_file_path(self._current_collection)
-        print(f"📖 Loading notes from: {notes_file}")
+        # Loading notes
         
         try:
             if os.path.exists(notes_file):
@@ -474,7 +570,7 @@ class NotesManager(QAbstractListModel):
                         self._notes = []
                         self._filtered_notes = []
                         self._next_id = 0
-                        print(f"📝 Empty notes file for collection '{self._current_collection}'")
+                        pass  # Empty notes file
                     else:
                         self._notes = json.loads(data)
                         
@@ -491,23 +587,23 @@ class NotesManager(QAbstractListModel):
                                 valid_notes.append(note)
                                 max_id = max(max_id, note['id'])
                             else:
-                                print(f"⚠️ Skipping invalid note: {note}")
+                                pass  # Skipping invalid note
                         
                         self._notes = valid_notes
                         self._next_id = max_id + 1
                         self._filtered_notes = self._notes.copy()
                         
-                print(f"✓ Loaded {len(self._notes)} notes for collection '{self._current_collection}'")
+                pass  # Notes loaded
             else:
                 # Collection file doesn't exist, create it
-                print(f"📝 Notes file doesn't exist, creating: {notes_file}")
+                pass  # Creating notes file
                 if self._create_collection_file(self._current_collection):
                     self._notes = []
                     self._filtered_notes = []
                     self._next_id = 0
-                    print(f"✓ Created new notes file for collection '{self._current_collection}'")
+                    pass  # Created notes file
                 else:
-                    print(f"✗ Failed to create notes file for collection '{self._current_collection}'")
+                    pass  # Failed to create notes file
                 
         except json.JSONDecodeError:
             self.loadError.emit(f"Notes file for '{self._current_collection}' is corrupted. Creating backup...")
@@ -533,7 +629,7 @@ class NotesManager(QAbstractListModel):
     def save_notes(self):
         """Save notes for current collection"""
         if not self._current_collection:
-            print("⚠️ No current collection set, cannot save notes")
+            pass  # No current collection set
             return False
 
         notes_file = self.get_collection_file_path(self._current_collection)
@@ -548,7 +644,7 @@ class NotesManager(QAbstractListModel):
                 json.dump(self._notes, f, indent=2, ensure_ascii=False)
 
             os.replace(tmp_path, notes_file)
-            print(f"✓ Saved {len(self._notes)} notes to {notes_file}")
+            pass  # Saved notes
             self.saveSuccess.emit()
             return True
 
@@ -630,7 +726,7 @@ class NotesManager(QAbstractListModel):
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 backup_path = f"{filepath}.backup_{timestamp}"
                 os.rename(filepath, backup_path)
-                print(f"✓ Backup created: {backup_path}")
+                pass  # Backup created
         except Exception as e:
             print(f"✗ Failed to create backup: {e}")
 
@@ -662,22 +758,28 @@ class NotesManager(QAbstractListModel):
         if clean_name in self._collections:
             return False  # Collection already exists
             
-        print(f"🆕 Creating new collection: {clean_name}")
+        # Creating new collection
         
         # IMPORTANT: Save current notes before creating new collection
         if self._current_collection:
-            print(f"💾 Saving current notes before creating new collection")
+            pass  # Saving current notes
             self.save_notes()
         
         # Add to collections list
         self._collections.append(clean_name)
+        
+        # Initialize collection settings with current card dimensions
+        self._collection_settings[clean_name] = {
+            "cardWidth": self._config.get("cardWidth", 381),
+            "cardHeight": self._config.get("cardHeight", 120)
+        }
         
         # Create the JSON file for this collection
         if self._create_collection_file(clean_name):
             # Save collections metadata
             if self.save_collections():
                 self.collectionsChanged.emit()
-                print(f"✓ Successfully created collection: {clean_name}")
+                pass  # Created collection
                 return True
             else:
                 # Cleanup if save failed
@@ -692,15 +794,15 @@ class NotesManager(QAbstractListModel):
     def switchCollection(self, name):
         """Switch to a different collection"""
         if name not in self._collections:
-            print(f"⚠️ Cannot switch to non-existent collection: {name}")
+            pass  # Cannot switch to non-existent collection
             return
 
         if self._current_collection != name:
-            print(f"🔄 Switching from '{self._current_collection}' to '{name}'")
+            pass  # Switching collections
 
             # IMPORTANT: Save current notes before switching
             if self._current_collection:
-                print(f"💾 Saving notes for current collection: {self._current_collection}")
+                pass  # Saving current notes
                 self.save_notes()
 
             # Store current search state
@@ -709,10 +811,27 @@ class NotesManager(QAbstractListModel):
             old_collection = self._current_collection
             self._current_collection = name
 
+            # Restore layout preferences for the new collection
+            new_card_width = self._get_current_collection_card_width()
+            new_card_height = self._get_current_collection_card_height()
+            
+            layout_changed = False
+            if self._config["cardWidth"] != new_card_width:
+                self._config["cardWidth"] = new_card_width
+                layout_changed = True
+                
+            if self._config["cardHeight"] != new_card_height:
+                self._config["cardHeight"] = new_card_height
+                layout_changed = True
+                
+            if layout_changed:
+                self.configChanged.emit()
+                pass  # Restored layout
+
             # Ensure target collection file exists
             collection_file = self.get_collection_file_path(name)
             if not os.path.exists(collection_file):
-                print(f"📝 Target collection file missing, creating: {collection_file}")
+                pass  # Creating missing collection file
                 if not self._create_collection_file(name):
                     # Revert to old collection if file creation failed
                     self._current_collection = old_collection
@@ -724,12 +843,12 @@ class NotesManager(QAbstractListModel):
 
             # Reapply search if there was one active
             if current_search.strip():
-                print(f"🔍 Reapplying search '{current_search}' to collection '{name}'")
+                pass  # Reapplying search
                 self._search_text = current_search
                 self.updateFilteredNotes()
 
             self.currentCollectionChanged.emit()
-            print(f"✓ Successfully switched to collection: {name}")
+            pass  # Switched to collection
 
     # Add a new slot to preserve search state
     @Slot(str, str)
@@ -744,18 +863,18 @@ class NotesManager(QAbstractListModel):
     def deleteCollection(self, name):
         """Delete a collection and its file"""
         if len(self._collections) <= 1:
-            print("⚠️ Cannot delete the last collection")
+            pass  # Cannot delete last collection
             return False  # Don't delete the last collection
             
         if name not in self._collections:
-            print(f"⚠️ Cannot delete non-existent collection: {name}")
+            pass  # Cannot delete non-existent collection
             return False
             
-        print(f"🗑️ Deleting collection: {name}")
+        # Deleting collection
         
         # IMPORTANT: Save current notes before deleting if it's the current collection
         if self._current_collection == name:
-            print(f"💾 Saving notes before deleting current collection")
+            pass  # Saving notes before deletion
             self.save_notes()
         
         # Remove from collections list
@@ -768,20 +887,20 @@ class NotesManager(QAbstractListModel):
                 # Create backup before deletion
                 backup_file = f"{collection_file}.deleted_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
                 os.rename(collection_file, backup_file)
-                print(f"✓ Collection file backed up to: {backup_file}")
+                pass  # Collection backed up
         except Exception as e:
             print(f"⚠️ Error deleting collection file: {e}")
         
         # If we deleted the current collection, switch to the first available
         if self._current_collection == name:
             self._current_collection = self._collections[0]
-            print(f"🔄 Switched to collection: {self._current_collection}")
+            pass  # Switched to collection
             self.load_notes()
             self.currentCollectionChanged.emit()
             
         self.save_collections()
         self.collectionsChanged.emit()
-        print(f"✓ Successfully deleted collection: {name}")
+        pass  # Deleted collection
         return True
 
     @Slot(str, str, result=bool)
@@ -794,11 +913,11 @@ class NotesManager(QAbstractListModel):
         if clean_new_name in self._collections:
             return False  # New name already exists
             
-        print(f"✏️ Renaming collection from '{old_name}' to '{clean_new_name}'")
+        # Renaming collection
         
         # IMPORTANT: Save current notes before renaming
         if self._current_collection == old_name:
-            print(f"💾 Saving notes before renaming current collection")
+            pass  # Saving notes before rename
             self.save_notes()
         
         # Update collections list
@@ -812,11 +931,11 @@ class NotesManager(QAbstractListModel):
             
             if os.path.exists(old_file):
                 os.rename(old_file, new_file)
-                print(f"✓ Renamed collection file: {old_file} -> {new_file}")
+                pass  # Renamed collection file
             else:
                 # Create new file if old one doesn't exist
                 self._create_collection_file(clean_new_name)
-                print(f"✓ Created new collection file: {new_file}")
+                pass  # Created new collection file
                 
         except Exception as e:
             print(f"✗ Error renaming collection file: {e}")
@@ -831,7 +950,7 @@ class NotesManager(QAbstractListModel):
             
         self.save_collections()
         self.collectionsChanged.emit()
-        print(f"✓ Successfully renamed collection to: {clean_new_name}")
+        pass  # Renamed collection
         return True
 
     # Properties
@@ -891,7 +1010,7 @@ class NotesManager(QAbstractListModel):
     def createNote(self, content):
         """Create a note in the current collection"""
         if not self._current_collection:
-            print("⚠️ Cannot create note: no current collection")
+            pass  # Cannot create note
             return -1
             
         note_id = self._next_id
@@ -926,14 +1045,14 @@ class NotesManager(QAbstractListModel):
         # Save to current collection
         self.save_notes()
         self.notesChanged.emit()
-        print(f"✓ Created note with ID {note_id} in collection '{self._current_collection}'")
+        pass  # Created note
         return note_id
     
     @Slot(int, str)
     def updateNote(self, note_id, content):
         """Update note content in the current collection"""
         if not self._current_collection:
-            print("⚠️ Cannot update note: no current collection")
+            pass  # Cannot update note
             return
             
         for i, note in enumerate(self._notes):
@@ -958,14 +1077,14 @@ class NotesManager(QAbstractListModel):
                     
                     # Save to current collection
                     self.save_notes()
-                    print(f"✓ Updated note with ID {note_id} in collection '{self._current_collection}'")
+                    pass  # Updated note
                 break
     
     @Slot(int)
     def deleteNote(self, note_id):
         """Delete note from current collection"""
         if not self._current_collection:
-            print("⚠️ Cannot delete note: no current collection")
+            pass  # Cannot delete note
             return
             
         # Find and remove from main list
@@ -985,7 +1104,7 @@ class NotesManager(QAbstractListModel):
         # Save to current collection
         self.save_notes()
         self.notesChanged.emit()
-        print(f"✓ Deleted note with ID {note_id} from collection '{self._current_collection}'")
+        pass  # Deleted note
     
     @Slot(int, result='QVariant')
     def getNote(self, note_id):
@@ -1025,7 +1144,7 @@ class NotesManager(QAbstractListModel):
                         notes = json.load(f)
                         note_count = len(notes) if isinstance(notes, list) else 0
             except Exception as e:
-                print(f"✗ Error reading collection {collection_name}: {e}")
+                pass  # Error reading collection
             
             info.append({
                 "name": collection_name,
@@ -1086,48 +1205,23 @@ class NotesManager(QAbstractListModel):
             self.configChanged.emit()
 
     @Slot()
-    def increaseCardWidth(self):
-        old_width = self._config["cardWidth"]
-        self._config["cardWidth"] = min(5000, self._config["cardWidth"] + 10)
-        if self._config["cardWidth"] != old_width:
-            self.save_config()
-            self.configChanged.emit()
-    
-    @Slot()
-    def decreaseCardWidth(self):
-        old_width = self._config["cardWidth"]
-        self._config["cardWidth"] = max(1, self._config["cardWidth"] - 10)
-        if self._config["cardWidth"] != old_width:
-            self.save_config()
-            self.configChanged.emit()
-    
-    @Slot()
     def increaseCardHeight(self):
-        old_height = self._config["cardHeight"]
-        self._config["cardHeight"] = min(5000, self._config["cardHeight"] + 10)
-        if self._config["cardHeight"] != old_height:
-            self.save_config()
-            self.configChanged.emit()
+        old_height = self._get_current_collection_card_height()
+        new_height = min(5000, old_height + 10)
+        if new_height != old_height:
+            self._set_current_collection_card_height(new_height)
     
     @Slot()
     def decreaseCardHeight(self):
-        old_height = self._config["cardHeight"]
-        self._config["cardHeight"] = max(1, self._config["cardHeight"] - 10)
-        if self._config["cardHeight"] != old_height:
-            self.save_config()
-            self.configChanged.emit()
+        old_height = self._get_current_collection_card_height()
+        new_height = max(1, old_height - 10)
+        if new_height != old_height:
+            self._set_current_collection_card_height(new_height)
 
     @Slot(int)
-    def setCardWidth(self, width):
-        self._config["cardWidth"] = max(150, min(400, width))
-        self.save_config()
-        self.configChanged.emit()
-    
-    @Slot(int)
     def setCardHeight(self, height):
-        self._config["cardHeight"] = max(120, min(300, height))
-        self.save_config()
-        self.configChanged.emit()
+        new_height = max(120, min(300, height))
+        self._set_current_collection_card_height(new_height)
         
     @Slot(int, int)
     def setWindowSize(self, width, height):
@@ -1145,44 +1239,178 @@ class NotesManager(QAbstractListModel):
             scrollBarSpace = 10
             availableWidth = gridWidth - leftMargin - rightMargin - scrollBarSpace
             spacing = 20
-            currentCardWidth = self._config["cardWidth"]
             
-            bestWidth = currentCardWidth
-            bestColumns = 1
-            bestFit = float('inf')
+            # Get the number of notes to determine if we should use full width
+            totalNotes = len(self._filtered_notes)
             
-            for cols in range(1, 11):
-                if cols == 1:
-                    candidateWidth = min(500, availableWidth)
+            # If there's only 1 note or very few notes, always expand to full width
+            if totalNotes <= 1:
+                # Single note should always get full width for reading comfort
+                bestWidth = availableWidth
+                bestColumns = 1
+                pass  # Single note optimization
+            elif totalNotes <= 2:
+                # Two notes might be better as full width or side-by-side
+                # Try 2 columns if there's enough space for comfortable reading
+                twoColWidth = (availableWidth - spacing) / 2
+                if twoColWidth >= 300:  # Reasonable minimum for 2 columns
+                    bestWidth = int(twoColWidth)
+                    bestColumns = 2
+                    pass  # Two note optimization
                 else:
-                    candidateWidth = (availableWidth - (cols - 1) * spacing) / cols
+                    # Not enough space for comfortable 2 columns, use full width
+                    bestWidth = availableWidth
+                    bestColumns = 1
+                    pass  # Two note full width
+            else:
+                # Multiple notes - use the original optimization algorithm
+                currentCardWidth = self._get_current_collection_card_width()
+                bestWidth = currentCardWidth
+                bestColumns = 1
+                bestFit = float('inf')
                 
-                candidateWidth = int(candidateWidth)
+                for cols in range(1, min(11, totalNotes + 1)):  # Don't exceed note count
+                    if cols == 1:
+                        candidateWidth = min(500, availableWidth)
+                    else:
+                        candidateWidth = (availableWidth - (cols - 1) * spacing) / cols
+                    
+                    candidateWidth = int(candidateWidth)
+                    
+                    if candidateWidth < 200:  # Reduced minimum for better optimization
+                        continue
+                    if candidateWidth > 500:
+                        candidateWidth = 500
+                    
+                    totalUsed = cols * candidateWidth + (cols - 1) * spacing
+                    
+                    if totalUsed <= availableWidth:
+                        unusedSpace = availableWidth - totalUsed
+                        if unusedSpace < bestFit and unusedSpace >= 0:
+                            bestWidth = candidateWidth
+                            bestColumns = cols
+                            bestFit = unusedSpace
                 
-                if candidateWidth < 250:
-                    continue
-                if candidateWidth > 500:
-                    candidateWidth = 500
+                # For single column in multi-note case, use full width
+                if bestColumns == 1:
+                    bestWidth = availableWidth
                 
-                totalUsed = cols * candidateWidth + (cols - 1) * spacing
-                
-                if totalUsed <= availableWidth:
-                    unusedSpace = availableWidth - totalUsed
-                    if unusedSpace < bestFit and unusedSpace >= 0:
-                        bestWidth = candidateWidth
-                        bestColumns = cols
-                        bestFit = unusedSpace
+                pass  # Layout optimized
             
-            bestWidth = max(150, min(500, bestWidth))
-            
-            if self._config["cardWidth"] != bestWidth:
-                self._config["cardWidth"] = int(bestWidth)
-                self.save_config()
-                self.configChanged.emit()
-                print(f"✓ Optimized to {bestColumns} columns with width {bestWidth}px")
+            # Update using collection-specific settings
+            current_width = self._get_current_collection_card_width()
+            if current_width != bestWidth:
+                self._set_current_collection_card_width(bestWidth)
                 
         except Exception as e:
             print(f"✗ Error optimizing card width: {e}")
+
+    @Slot(int, int, int)
+    def setColumnCount(self, gridWidth, leftMargin, targetColumns):
+        """Set card width to achieve a specific number of columns"""
+        try:
+            rightMargin = 10
+            scrollBarSpace = 10
+            availableWidth = gridWidth - leftMargin - rightMargin - scrollBarSpace
+            spacing = 20
+            
+            # Calculate width needed for target columns
+            if targetColumns == 1:
+                # Single column fills entire available width
+                newWidth = availableWidth
+            else:
+                newWidth = (availableWidth - (targetColumns - 1) * spacing) / targetColumns
+            
+            newWidth = int(newWidth)
+            
+            # Only enforce maximum width limit, no minimum
+            newWidth = min(500, newWidth)
+            
+            # For single column, always allow full width regardless of max limit
+            if targetColumns == 1:
+                newWidth = availableWidth
+            
+            # Always allow the column count change (no width validation)
+            current_width = self._get_current_collection_card_width()
+            if current_width != newWidth:
+                self._set_current_collection_card_width(newWidth)
+                pass  # Set column layout
+            return True
+                
+        except Exception as e:
+            print(f"✗ Error setting column count: {e}")
+            return False
+
+    @Slot(int, int)
+    def increaseColumns(self, gridWidth, leftMargin):
+        """Increase the number of columns by decreasing card width"""
+        try:
+            # Calculate current columns
+            rightMargin = 10
+            scrollBarSpace = 10
+            availableWidth = gridWidth - leftMargin - rightMargin - scrollBarSpace
+            spacing = 20
+            currentWidth = self._get_current_collection_card_width()
+            
+            # Calculate current approximate columns
+            if currentWidth >= availableWidth:
+                # Single column mode
+                currentColumns = 1
+            else:
+                currentColumns = max(1, int((availableWidth + spacing) / (currentWidth + spacing)))
+            
+            # Get the number of notes to determine maximum useful columns
+            totalNotes = len(self._filtered_notes)
+            if totalNotes == 0:
+                return False  # No notes, can't increase columns
+            
+            # Check if we're already at the maximum useful column count
+            if currentColumns >= totalNotes:
+                pass  # Already at maximum columns
+                return False
+            
+            # Increase columns
+            targetColumns = currentColumns + 1
+            return self.setColumnCount(gridWidth, leftMargin, targetColumns)
+            
+        except Exception as e:
+            print(f"✗ Error increasing columns: {e}")
+            return False
+
+    @Slot(int, int)
+    def decreaseColumns(self, gridWidth, leftMargin):
+        """Decrease the number of columns by increasing card width"""
+        try:
+            # Calculate current columns
+            rightMargin = 10
+            scrollBarSpace = 10
+            availableWidth = gridWidth - leftMargin - rightMargin - scrollBarSpace
+            spacing = 20
+            currentWidth = self._get_current_collection_card_width()
+            
+            # Calculate current approximate columns
+            if currentWidth >= availableWidth:
+                # Already at single column mode (full width)
+                currentColumns = 1
+            else:
+                currentColumns = max(1, int((availableWidth + spacing) / (currentWidth + spacing)))
+            
+            # If we're already at 1 column but not full width, expand to full width
+            if currentColumns == 1 and currentWidth < availableWidth:
+                # Force single column to full width
+                targetColumns = 1
+                return self.setColumnCount(gridWidth, leftMargin, targetColumns)
+            
+            # Don't allow going below 1 column if already at full width
+            if currentColumns <= 1 and currentWidth >= availableWidth:
+                return False
+            
+            targetColumns = currentColumns - 1
+            return self.setColumnCount(gridWidth, leftMargin, targetColumns)
+            
+        except Exception as e:
+            print(f"✗ Error decreasing columns: {e}")
+            return False
 
     # Add this property after the existing properties
     @Property(int, notify=filteredNotesChanged)
@@ -1260,7 +1488,7 @@ class NotesManager(QAbstractListModel):
                                             pass
                                             
             except Exception as e:
-                print(f"Error reading collection {collection_name}: {e}")
+                pass  # Error reading collection
             
             collection_stats.append({
                 "name": collection_name,

@@ -383,6 +383,42 @@ ApplicationWindow {
         }
     }
 
+    Shortcut {
+        sequence: notesManager.config.shortcuts.increaseColumns
+        enabled: appState.isGridView()
+        onActivated: {
+            if (gridViewRef) {
+                var success = notesManager.increaseColumns(
+                    gridViewRef.width,
+                    gridViewRef.leftMargin
+                )
+                if (success) {
+                    notification.show("More columns", "success")
+                } else {
+                    notification.show("Maximum columns reached - all notes in one row", "warning")
+                }
+            }
+        }
+    }
+
+    Shortcut {
+        sequence: notesManager.config.shortcuts.decreaseColumns
+        enabled: appState.isGridView()
+        onActivated: {
+            if (gridViewRef) {
+                var success = notesManager.decreaseColumns(
+                    gridViewRef.width,
+                    gridViewRef.leftMargin
+                )
+                if (success) {
+                    notification.show("Fewer columns", "success")
+                } else {
+                    notification.show("Already at minimum (1 column)", "warning")
+                }
+            }
+        }
+    }
+
     // NEW: Collection shortcuts
     Shortcut {
         sequence: notesManager.config.shortcuts.newCollection
@@ -539,17 +575,7 @@ ApplicationWindow {
         onActivated: notesManager.decreaseCardTitleFontSize()
     }
 
-    // Card dimension control shortcuts
-    Shortcut {
-        sequence: notesManager.config.shortcuts.increaseCardWidth
-        onActivated: notesManager.increaseCardWidth()
-    }
-
-    Shortcut {
-        sequence: notesManager.config.shortcuts.decreaseCardWidth
-        onActivated: notesManager.decreaseCardWidth()
-    }
-
+    // Card height control shortcuts
     Shortcut {
         sequence: notesManager.config.shortcuts.increaseCardHeight
         onActivated: notesManager.increaseCardHeight()
@@ -885,7 +911,7 @@ ApplicationWindow {
             
             Text {
                 text: "Search:"
-                color: colors.primaryText
+                color: Qt.darker(colors.accentColor, 1.8)
                 font.family: notesManager.config.fontFamily
                 font.pixelSize: 14
             }
@@ -897,7 +923,7 @@ ApplicationWindow {
                 text: notesManager.searchText
                 font.family: notesManager.config.fontFamily
                 font.pixelSize: 14
-                color: colors.primaryText
+                color: Qt.darker(colors.accentColor, 1.8)
                 placeholderTextColor: colors.placeholderColor
                 
                 onTextChanged: {
@@ -951,7 +977,7 @@ ApplicationWindow {
             
             Text {
                 text: "Found: " + notesManager.rowCount() + " | Esc to exit"
-                color: colors.primaryText
+                color: Qt.darker(colors.accentColor, 1.8)
                 font.family: notesManager.config.fontFamily
                 font.pixelSize: 12
             }
@@ -1768,8 +1794,20 @@ ApplicationWindow {
                         colors: helpDialog.helpColors
                     }
                     HelpItem { 
-                        label: "Optimize Card Width" 
+                        label: "Auto-Optimize Layout" 
                         shortcut: notesManager.config.shortcuts.optimizeCardWidth 
+                        width: parent.width; itemHeight: 18; fontSize: 11
+                        colors: helpDialog.helpColors
+                    }
+                    HelpItem { 
+                        label: "More Columns (Narrower)" 
+                        shortcut: notesManager.config.shortcuts.increaseColumns 
+                        width: parent.width; itemHeight: 18; fontSize: 11
+                        colors: helpDialog.helpColors
+                    }
+                    HelpItem { 
+                        label: "Fewer Columns (Wider)" 
+                        shortcut: notesManager.config.shortcuts.decreaseColumns 
                         width: parent.width; itemHeight: 18; fontSize: 11
                         colors: helpDialog.helpColors
                     }
@@ -1836,25 +1874,13 @@ ApplicationWindow {
                     }
                     
                     HelpItem { 
-                        label: "Increase Card Width" 
-                        shortcut: notesManager.config.shortcuts.increaseCardWidth
-                        width: parent.width; itemHeight: 18; fontSize: 11
-                        colors: helpDialog.helpColors
-                    }
-                    HelpItem { 
-                        label: "Decrease Card Width" 
-                        shortcut: notesManager.config.shortcuts.decreaseCardWidth
-                        width: parent.width; itemHeight: 18; fontSize: 11
-                        colors: helpDialog.helpColors
-                    }
-                    HelpItem { 
-                        label: "Increase Card Height" 
+                        label: "Taller Cards" 
                         shortcut: notesManager.config.shortcuts.increaseCardHeight
                         width: parent.width; itemHeight: 18; fontSize: 11
                         colors: helpDialog.helpColors
                     }
                     HelpItem { 
-                        label: "Decrease Card Height" 
+                        label: "Shorter Cards" 
                         shortcut: notesManager.config.shortcuts.decreaseCardHeight
                         width: parent.width; itemHeight: 18; fontSize: 11
                         colors: helpDialog.helpColors
