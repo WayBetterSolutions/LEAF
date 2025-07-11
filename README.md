@@ -110,8 +110,6 @@ A clean, fast, and customizable note-taking application built with Python and Qt
 - `Ctrl+1` - Auto-optimize card width
 - `Ctrl+Up` - More columns (narrower cards)
 - `Ctrl+Down` - Fewer columns (wider cards)
-- `Ctrl+Shift+Right` - Increase card width
-- `Ctrl+Shift+Left` - Decrease card width
 - `Ctrl+Shift+Up` - Decrease card height
 - `Ctrl+Shift+Down` - Increase card height
 

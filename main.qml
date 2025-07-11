@@ -31,6 +31,17 @@ ApplicationWindow {
         }
     }
 
+    // Handle card bounds updates when screen size changes
+    Connections {
+        target: notesManager
+        function onCardBoundsNeedUpdate() {
+            // Force cards to fill bounds with actual grid dimensions
+            if (gridViewRef && appState.isGridView()) {
+                notesManager.forceCardFillBounds(gridViewRef.width, gridViewRef.leftMargin)
+            }
+        }
+    }
+
     // Save window size when closing
     onClosing: (close) => {
         notesManager.setWindowSize(width, height)

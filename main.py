@@ -28,6 +28,7 @@ class NotesManager(QAbstractListModel):
     saveError = Signal(str)
     loadError = Signal(str)
     saveSuccess = Signal()
+    cardBoundsNeedUpdate = Signal()
     
     # Role constants
     IdRole       = Qt.UserRole + 1
@@ -253,7 +254,8 @@ class NotesManager(QAbstractListModel):
         # Initialize collection settings
         self._collection_settings[clean_name] = {
             "cardWidth": self._config.get("cardWidth", 381),
-            "cardHeight": self._config.get("cardHeight", 120)
+            "cardHeight": self._config.get("cardHeight", 120),
+            "preferredColumns": 2  # Default to 2 columns
         }
         
         # Create the collection file
@@ -428,12 +430,16 @@ class NotesManager(QAbstractListModel):
                 if collection_name not in self._collection_settings:
                     self._collection_settings[collection_name] = {
                         "cardWidth": self._config.get("cardWidth", 381),
-                        "cardHeight": self._config.get("cardHeight", 120)
+                        "cardHeight": self._config.get("cardHeight", 120),
+                        "preferredColumns": 2  # Default to 2 columns
                     }
                 else:
                     # Ensure existing collections have cardHeight if they don't
                     if "cardHeight" not in self._collection_settings[collection_name]:
                         self._collection_settings[collection_name]["cardHeight"] = self._config.get("cardHeight", 120)
+                    # Ensure existing collections have preferredColumns if they don't
+                    if "preferredColumns" not in self._collection_settings[collection_name]:
+                        self._collection_settings[collection_name]["preferredColumns"] = 2
                     
             # Apply the current collection's layout settings to global config
             if self._current_collection and self._current_collection in self._collection_settings:
@@ -487,7 +493,8 @@ class NotesManager(QAbstractListModel):
             # Initialize settings for this collection
             self._collection_settings[self._current_collection] = {
                 "cardWidth": self._config.get("cardWidth", 381),
-                "cardHeight": self._config.get("cardHeight", 120)
+                "cardHeight": self._config.get("cardHeight", 120),
+                "preferredColumns": 2  # Default to 2 columns
             }
         
         return self._collection_settings[self._current_collection].get("cardWidth", 381)
@@ -501,10 +508,75 @@ class NotesManager(QAbstractListModel):
             # Initialize settings for this collection
             self._collection_settings[self._current_collection] = {
                 "cardWidth": self._config.get("cardWidth", 381),
-                "cardHeight": self._config.get("cardHeight", 120)
+                "cardHeight": self._config.get("cardHeight", 120),
+                "preferredColumns": 2  # Default to 2 columns
             }
         
         return self._collection_settings[self._current_collection].get("cardHeight", 120)
+
+    def _get_current_collection_preferred_columns(self):
+        """Get the preferred column count for the current collection"""
+        if not self._current_collection:
+            return 2
+        
+        if self._current_collection not in self._collection_settings:
+            # Initialize settings for this collection
+            self._collection_settings[self._current_collection] = {
+                "cardWidth": self._config.get("cardWidth", 381),
+                "cardHeight": self._config.get("cardHeight", 120),
+                "preferredColumns": 2  # Default to 2 columns
+            }
+        
+        return self._collection_settings[self._current_collection].get("preferredColumns", 2)
+
+    def _set_current_collection_preferred_columns(self, columns):
+        """Set the preferred column count for the current collection"""
+        if not self._current_collection:
+            return
+        
+        if self._current_collection not in self._collection_settings:
+            self._collection_settings[self._current_collection] = {
+                "cardWidth": self._config.get("cardWidth", 381),
+                "cardHeight": self._config.get("cardHeight", 120),
+                "preferredColumns": 2
+            }
+        
+        self._collection_settings[self._current_collection]["preferredColumns"] = columns
+        self.save_collections()
+
+    def _force_cards_to_fill_bounds(self, gridWidth, leftMargin):
+        """Catch-all function to force cards to exactly fill available space"""
+        try:
+            if not self._current_collection:
+                return False
+            
+            # Calculate exact available width
+            rightMargin = 10
+            scrollBarSpace = 10
+            availableWidth = gridWidth - leftMargin - rightMargin - scrollBarSpace
+            spacing = 20
+            
+            # Get preferred columns
+            preferredColumns = self._get_current_collection_preferred_columns()
+            
+            # Calculate exact width to fill bounds
+            if preferredColumns == 1:
+                exactWidth = availableWidth
+            else:
+                exactWidth = (availableWidth - (preferredColumns - 1) * spacing) / preferredColumns
+            
+            exactWidth = int(exactWidth)
+            
+            # Force this width regardless of what's currently set
+            current_width = self._get_current_collection_card_width()
+            if exactWidth != current_width:
+                self._set_current_collection_card_width(exactWidth)
+                return True
+            return False
+            
+        except Exception as e:
+            # Don't let errors break the UI
+            return False
 
     def _set_current_collection_card_width(self, width):
         """Set the card width for the current collection"""
@@ -533,7 +605,9 @@ class NotesManager(QAbstractListModel):
         
         if self._current_collection not in self._collection_settings:
             self._collection_settings[self._current_collection] = {
-                "cardWidth": self._config.get("cardWidth", 381)
+                "cardWidth": self._config.get("cardWidth", 381),
+                "cardHeight": self._config.get("cardHeight", 120),
+                "preferredColumns": 2  # Default to 2 columns
             }
         
         self._collection_settings[self._current_collection]["cardHeight"] = height
@@ -771,7 +845,8 @@ class NotesManager(QAbstractListModel):
         # Initialize collection settings with current card dimensions
         self._collection_settings[clean_name] = {
             "cardWidth": self._config.get("cardWidth", 381),
-            "cardHeight": self._config.get("cardHeight", 120)
+            "cardHeight": self._config.get("cardHeight", 120),
+            "preferredColumns": 2  # Default to 2 columns
         }
         
         # Create the JSON file for this collection
@@ -848,6 +923,9 @@ class NotesManager(QAbstractListModel):
                 self.updateFilteredNotes()
 
             self.currentCollectionChanged.emit()
+            
+            # Trigger card bounds recalculation for new collection in current screen size
+            self.cardBoundsNeedUpdate.emit()
             pass  # Switched to collection
 
     # Add a new slot to preserve search state
@@ -1227,83 +1305,111 @@ class NotesManager(QAbstractListModel):
     def setWindowSize(self, width, height):
         if (width >= 600 and height >= 400 and 
             (self._config["windowWidth"] != width or self._config["windowHeight"] != height)):
+            
+            # Update window size
+            old_width = self._config["windowWidth"]
             self._config["windowWidth"] = width
             self._config["windowHeight"] = height
             self.save_config()
+            
+            # Signal that card bounds need to be recalculated
+            # The QML will call forceCardFillBounds with actual grid dimensions
+            if width != old_width:
+                self.cardBoundsNeedUpdate.emit()
+        
+    def _check_and_adjust_card_width_for_window(self, window_width):
+        """Check if current card width is appropriate for new window size and adjust if needed"""
+        try:
+            if not self._current_collection:
+                return
+                
+            current_card_width = self._get_current_collection_card_width()
+            
+            # Estimate available grid width (window minus typical margins/chrome)
+            estimated_margins = 100  # Rough estimate for left panel + margins + scrollbar
+            estimated_available_width = window_width - estimated_margins
+            spacing = 20
+            
+            # Get the user's preferred column count
+            preferred_columns = self._get_current_collection_preferred_columns()
+            
+            # Calculate new width to maintain preferred columns in the new window size
+            if preferred_columns == 1:
+                new_width = estimated_available_width  # Full width
+            else:
+                new_width = (estimated_available_width - (preferred_columns - 1) * spacing) / preferred_columns
+            
+            new_width = int(new_width)  # Pure calculation - no artificial limits
+            
+            # Always adjust to maintain preferred columns and stretch to edges
+            # Only skip adjustment if the width difference is tiny (< 2px)
+            if abs(new_width - current_card_width) > 2:
+                self._set_current_collection_card_width(new_width)
+                    
+        except Exception as e:
+            # Silently handle errors to avoid disrupting window resize
+            pass
         
     @Slot(int, int)
     def optimizeCardWidth(self, gridWidth, leftMargin):
-        """Calculate and set card width to perfectly fill the grid width"""
+        """Find optimal column count and set cards to fill available width"""
         try:
-            rightMargin = 10
-            scrollBarSpace = 10
-            availableWidth = gridWidth - leftMargin - rightMargin - scrollBarSpace
-            spacing = 20
-            
-            # Get the number of notes to determine if we should use full width
+            # Get the number of notes to determine optimal layout
             totalNotes = len(self._filtered_notes)
+            if totalNotes == 0:
+                return
             
-            # If there's only 1 note or very few notes, always expand to full width
-            if totalNotes <= 1:
-                # Single note should always get full width for reading comfort
-                bestWidth = availableWidth
-                bestColumns = 1
-                pass  # Single note optimization
-            elif totalNotes <= 2:
-                # Two notes might be better as full width or side-by-side
-                # Try 2 columns if there's enough space for comfortable reading
+            # Simple optimization: find best column count for readability
+            if totalNotes == 1:
+                # Single note gets full width
+                optimalColumns = 1
+            elif totalNotes == 2:
+                # Two notes: prefer 2 columns if each would be reasonably wide
+                rightMargin = 10
+                scrollBarSpace = 10
+                availableWidth = gridWidth - leftMargin - rightMargin - scrollBarSpace
+                spacing = 20
                 twoColWidth = (availableWidth - spacing) / 2
-                if twoColWidth >= 300:  # Reasonable minimum for 2 columns
-                    bestWidth = int(twoColWidth)
-                    bestColumns = 2
-                    pass  # Two note optimization
-                else:
-                    # Not enough space for comfortable 2 columns, use full width
-                    bestWidth = availableWidth
-                    bestColumns = 1
-                    pass  # Two note full width
+                optimalColumns = 2 if twoColWidth >= 200 else 1
             else:
-                # Multiple notes - use the original optimization algorithm
-                currentCardWidth = self._get_current_collection_card_width()
-                bestWidth = currentCardWidth
-                bestColumns = 1
-                bestFit = float('inf')
+                # Multiple notes: find optimal balance between columns and readability
+                rightMargin = 10
+                scrollBarSpace = 10
+                availableWidth = gridWidth - leftMargin - rightMargin - scrollBarSpace
+                spacing = 20
                 
-                for cols in range(1, min(11, totalNotes + 1)):  # Don't exceed note count
+                # Try different column counts and pick the one with best card width
+                optimalColumns = 1
+                bestCardWidth = availableWidth
+                
+                for cols in range(1, min(totalNotes + 1, 6)):  # Try up to 5 columns max
                     if cols == 1:
-                        candidateWidth = min(500, availableWidth)
+                        cardWidth = availableWidth
                     else:
-                        candidateWidth = (availableWidth - (cols - 1) * spacing) / cols
+                        cardWidth = (availableWidth - (cols - 1) * spacing) / cols
                     
-                    candidateWidth = int(candidateWidth)
-                    
-                    if candidateWidth < 200:  # Reduced minimum for better optimization
-                        continue
-                    if candidateWidth > 500:
-                        candidateWidth = 500
-                    
-                    totalUsed = cols * candidateWidth + (cols - 1) * spacing
-                    
-                    if totalUsed <= availableWidth:
-                        unusedSpace = availableWidth - totalUsed
-                        if unusedSpace < bestFit and unusedSpace >= 0:
-                            bestWidth = candidateWidth
-                            bestColumns = cols
-                            bestFit = unusedSpace
-                
-                # For single column in multi-note case, use full width
-                if bestColumns == 1:
-                    bestWidth = availableWidth
-                
-                pass  # Layout optimized
+                    # Prefer column counts that give reasonable card widths (150-400px)
+                    if 150 <= cardWidth <= 400:
+                        optimalColumns = cols
+                        bestCardWidth = cardWidth
+                    elif cardWidth > 400 and cols > optimalColumns:
+                        # If card is too wide, more columns might be better
+                        optimalColumns = cols
+                        bestCardWidth = cardWidth
             
-            # Update using collection-specific settings
-            current_width = self._get_current_collection_card_width()
-            if current_width != bestWidth:
-                self._set_current_collection_card_width(bestWidth)
+            # Use setColumnCount to apply the optimal column count (ensures edge-to-edge fill)
+            self.setColumnCount(gridWidth, leftMargin, optimalColumns)
+            
+            # CATCH-ALL: Force cards to fill bounds after optimization
+            self._force_cards_to_fill_bounds(gridWidth, leftMargin)
                 
         except Exception as e:
             print(f"✗ Error optimizing card width: {e}")
+
+    @Slot(int, int)
+    def forceCardFillBounds(self, gridWidth, leftMargin):
+        """Public method to force cards to fill available bounds"""
+        return self._force_cards_to_fill_bounds(gridWidth, leftMargin)
 
     @Slot(int, int, int)
     def setColumnCount(self, gridWidth, leftMargin, targetColumns):
@@ -1321,20 +1427,19 @@ class NotesManager(QAbstractListModel):
             else:
                 newWidth = (availableWidth - (targetColumns - 1) * spacing) / targetColumns
             
+            # Pure math - no artificial limits when user explicitly sets columns
+            # Cards should always stretch to fill available space exactly
             newWidth = int(newWidth)
-            
-            # Only enforce maximum width limit, no minimum
-            newWidth = min(500, newWidth)
-            
-            # For single column, always allow full width regardless of max limit
-            if targetColumns == 1:
-                newWidth = availableWidth
             
             # Always allow the column count change (no width validation)
             current_width = self._get_current_collection_card_width()
             if current_width != newWidth:
                 self._set_current_collection_card_width(newWidth)
-                pass  # Set column layout
+                # Save the preferred column count
+                self._set_current_collection_preferred_columns(targetColumns)
+            
+            # CATCH-ALL: Force cards to fill bounds regardless
+            self._force_cards_to_fill_bounds(gridWidth, leftMargin)
             return True
                 
         except Exception as e:
@@ -1353,23 +1458,20 @@ class NotesManager(QAbstractListModel):
             currentWidth = self._get_current_collection_card_width()
             
             # Calculate current approximate columns
-            if currentWidth >= availableWidth:
+            if currentWidth >= availableWidth * 0.9:  # Allow some tolerance
                 # Single column mode
                 currentColumns = 1
             else:
                 currentColumns = max(1, int((availableWidth + spacing) / (currentWidth + spacing)))
             
-            # Get the number of notes to determine maximum useful columns
+            # Only limit: can't have more columns than notes (empty columns are useless)
             totalNotes = len(self._filtered_notes)
             if totalNotes == 0:
                 return False  # No notes, can't increase columns
             
-            # Check if we're already at the maximum useful column count
             if currentColumns >= totalNotes:
-                pass  # Already at maximum columns
-                return False
+                return False  # Already at one column per note
             
-            # Increase columns
             targetColumns = currentColumns + 1
             return self.setColumnCount(gridWidth, leftMargin, targetColumns)
             
@@ -1389,20 +1491,20 @@ class NotesManager(QAbstractListModel):
             currentWidth = self._get_current_collection_card_width()
             
             # Calculate current approximate columns
-            if currentWidth >= availableWidth:
+            if currentWidth >= availableWidth * 0.9:  # Allow some tolerance
                 # Already at single column mode (full width)
                 currentColumns = 1
             else:
                 currentColumns = max(1, int((availableWidth + spacing) / (currentWidth + spacing)))
             
             # If we're already at 1 column but not full width, expand to full width
-            if currentColumns == 1 and currentWidth < availableWidth:
+            if currentColumns == 1 and currentWidth < availableWidth * 0.9:
                 # Force single column to full width
                 targetColumns = 1
                 return self.setColumnCount(gridWidth, leftMargin, targetColumns)
             
             # Don't allow going below 1 column if already at full width
-            if currentColumns <= 1 and currentWidth >= availableWidth:
+            if currentColumns <= 1 and currentWidth >= availableWidth * 0.9:
                 return False
             
             targetColumns = currentColumns - 1
