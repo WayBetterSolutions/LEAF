@@ -255,7 +255,7 @@ class NotesManager(QAbstractListModel):
         self._collection_settings[clean_name] = {
             "cardWidth": self._config.get("cardWidth", 381),
             "cardHeight": self._config.get("cardHeight", 120),
-            "preferredColumns": 2  # Default to 2 columns
+            "preferredColumns": 1  # Default to 1 column
         }
         
         # Create the collection file
@@ -431,7 +431,7 @@ class NotesManager(QAbstractListModel):
                     self._collection_settings[collection_name] = {
                         "cardWidth": self._config.get("cardWidth", 381),
                         "cardHeight": self._config.get("cardHeight", 120),
-                        "preferredColumns": 2  # Default to 2 columns
+                        "preferredColumns": 1  # Default to 1 column
                     }
                 else:
                     # Ensure existing collections have cardHeight if they don't
@@ -439,7 +439,7 @@ class NotesManager(QAbstractListModel):
                         self._collection_settings[collection_name]["cardHeight"] = self._config.get("cardHeight", 120)
                     # Ensure existing collections have preferredColumns if they don't
                     if "preferredColumns" not in self._collection_settings[collection_name]:
-                        self._collection_settings[collection_name]["preferredColumns"] = 2
+                        self._collection_settings[collection_name]["preferredColumns"] = 1
                     
             # Apply the current collection's layout settings to global config
             if self._current_collection and self._current_collection in self._collection_settings:
@@ -494,7 +494,7 @@ class NotesManager(QAbstractListModel):
             self._collection_settings[self._current_collection] = {
                 "cardWidth": self._config.get("cardWidth", 381),
                 "cardHeight": self._config.get("cardHeight", 120),
-                "preferredColumns": 2  # Default to 2 columns
+                "preferredColumns": 1  # Default to 1 column
             }
         
         return self._collection_settings[self._current_collection].get("cardWidth", 381)
@@ -509,7 +509,7 @@ class NotesManager(QAbstractListModel):
             self._collection_settings[self._current_collection] = {
                 "cardWidth": self._config.get("cardWidth", 381),
                 "cardHeight": self._config.get("cardHeight", 120),
-                "preferredColumns": 2  # Default to 2 columns
+                "preferredColumns": 1  # Default to 1 column
             }
         
         return self._collection_settings[self._current_collection].get("cardHeight", 120)
@@ -517,17 +517,17 @@ class NotesManager(QAbstractListModel):
     def _get_current_collection_preferred_columns(self):
         """Get the preferred column count for the current collection"""
         if not self._current_collection:
-            return 2
+            return 1
         
         if self._current_collection not in self._collection_settings:
             # Initialize settings for this collection
             self._collection_settings[self._current_collection] = {
                 "cardWidth": self._config.get("cardWidth", 381),
                 "cardHeight": self._config.get("cardHeight", 120),
-                "preferredColumns": 2  # Default to 2 columns
+                "preferredColumns": 1  # Default to 1 column
             }
         
-        return self._collection_settings[self._current_collection].get("preferredColumns", 2)
+        return self._collection_settings[self._current_collection].get("preferredColumns", 1)
 
     def _set_current_collection_preferred_columns(self, columns):
         """Set the preferred column count for the current collection"""
@@ -538,7 +538,7 @@ class NotesManager(QAbstractListModel):
             self._collection_settings[self._current_collection] = {
                 "cardWidth": self._config.get("cardWidth", 381),
                 "cardHeight": self._config.get("cardHeight", 120),
-                "preferredColumns": 2
+                "preferredColumns": 1
             }
         
         self._collection_settings[self._current_collection]["preferredColumns"] = columns
@@ -607,7 +607,7 @@ class NotesManager(QAbstractListModel):
             self._collection_settings[self._current_collection] = {
                 "cardWidth": self._config.get("cardWidth", 381),
                 "cardHeight": self._config.get("cardHeight", 120),
-                "preferredColumns": 2  # Default to 2 columns
+                "preferredColumns": 1  # Default to 1 column
             }
         
         self._collection_settings[self._current_collection]["cardHeight"] = height
@@ -846,7 +846,7 @@ class NotesManager(QAbstractListModel):
         self._collection_settings[clean_name] = {
             "cardWidth": self._config.get("cardWidth", 381),
             "cardHeight": self._config.get("cardHeight", 120),
-            "preferredColumns": 2  # Default to 2 columns
+            "preferredColumns": 1  # Default to 1 column
         }
         
         # Create the JSON file for this collection
