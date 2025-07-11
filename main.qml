@@ -2684,7 +2684,7 @@ ApplicationWindow {
                                         color: colors.textColor
                                     }
                                     Text {
-                                        text: notesManager.noteCount + " notes"
+                                        text: notesManager.totalNotesInCollection + " notes"
                                         font.family: notesManager.config.fontFamily
                                         font.pixelSize: 12
                                         color: colors.secondaryText

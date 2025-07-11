@@ -1189,6 +1189,11 @@ class NotesManager(QAbstractListModel):
     def noteCount(self):
         return len(self._filtered_notes)
     
+    @Property(int, notify=notesChanged)
+    def totalNotesInCollection(self):
+        """Total number of notes in the current collection (not filtered)"""
+        return len(self._notes)
+    
     @Slot(str)
     def setTheme(self, theme_name):
         self._config["currentTheme"] = theme_name
