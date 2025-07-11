@@ -277,36 +277,6 @@ class NotesManager(QAbstractListModel):
     def load_config(self):
         """Load configuration, creating default if missing"""
         default_config = {
-            "backgroundColor": "#2b2b2b",
-            "cardColor": "#3c3c3c", 
-            "textColor": "#ffffff",
-            "accentColor": "#4a9eff",
-            "secondaryTextColor": "#b0b0b0",
-            "hoverColor": "#4c4c4c",
-            "selectedCardColor": "#5c5c5c",
-            "borderColor": "#505050",
-            "placeholderColor": "#808080",
-            "deleteButtonColor": "#e74c3c",
-            "successColor": "#27ae60",
-            "warningColor": "#f39c12",
-            "searchBarColor": "#ffffff",
-            "searchBarTextColor": "#2b2b2b",
-            "buttonTextColor": "#c0caf5",
-            "buttonBorderColor": "#414868", 
-            "notificationTextColor": "#c0caf5",
-            "modalOverlayColor": "#16161e",
-            "modalOverlayOpacity": 0.8,
-            "focusBorderColor": "#7aa2f7",
-            "transparentColor": "transparent",
-            "selectedCardTextColor": "#c0caf5",
-            "selectedCardSecondaryTextColor": "#bb9af7",
-            "helpDialogBackgroundColor": "#24283b",
-            "helpDialogBorderColor": "#7aa2f7", 
-            "helpDialogTextColor": "#c0caf5",
-            "confirmationDialogBackgroundColor": "#24283b",
-            "confirmationDialogBorderColor": "#7aa2f7",
-            "editorBackgroundColor": "#24283b",
-            "editorFocusBorderColor": "#7aa2f7",
             "fontFamily": "Victor Mono",
             "fontSize": 34,
             "cardFontSize": 29,
@@ -759,12 +729,6 @@ class NotesManager(QAbstractListModel):
                         validated[key] = max(120, min(400, size))
                 except (ValueError, TypeError):
                     validated[key] = defaults[key]
-
-        # Validate colors
-        color_pattern = re.compile(r'^#[0-9A-Fa-f]{6}$')
-        for key, value in validated.items():
-            if 'Color' in key and not color_pattern.match(str(value)):
-                validated[key] = defaults.get(key, "#ffffff")
 
         # Validate numeric values
         numeric_keys = ['maxUnsavedChanges', 'autoSaveInterval', 'searchDebounceInterval', 'windowWidth', 'windowHeight']
