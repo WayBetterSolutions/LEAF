@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="assets/LEAF.svg" alt="LEAF Logo" width="256" height="256">
+  <img src="assets/LEAFico.ico" alt="LEAF Logo" width="256" height="256">
   
   # LEAF Notes
   ## Literature Environment & Archival Framework
