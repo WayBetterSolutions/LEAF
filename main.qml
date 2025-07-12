@@ -2326,9 +2326,9 @@ ApplicationWindow {
             GradientStop { position: 1.0; color: Qt.darker(colors.surface, 1.1) }
         }
 
-        // Enhanced keyboard navigation with hjkl and auto-scrolling
+        // Keyboard navigation - arrow keys only, no vim keys, space allowed in search
         Keys.onPressed: (event) => {
-            if (event.key === Qt.Key_Up || event.key === Qt.Key_K) {
+            if (event.key === Qt.Key_Up) {
                 event.accepted = true
                 if (selectedFontIndex <= 0) {
                     selectedFontIndex = availableFonts.length - 1
@@ -2336,7 +2336,7 @@ ApplicationWindow {
                     selectedFontIndex = selectedFontIndex - 1
                 }
                 scrollToSelected()
-            } else if (event.key === Qt.Key_Down || event.key === Qt.Key_J) {
+            } else if (event.key === Qt.Key_Down) {
                 event.accepted = true
                 if (selectedFontIndex >= availableFonts.length - 1) {
                     selectedFontIndex = 0
@@ -2359,8 +2359,7 @@ ApplicationWindow {
             } else if (event.key === Qt.Key_PageDown) {
                 event.accepted = true
                 selectedFontIndex = Math.min(availableFonts.length - 1, selectedFontIndex + 10)
-                scrollToSelected()
-            } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Space) {
+            } else if (event.key === Qt.Key_Return) {
                 event.accepted = true
                 selectCurrentFont()
             } else if (event.key === Qt.Key_Escape) {
@@ -2379,7 +2378,7 @@ ApplicationWindow {
                     event.accepted = true
                 }
             } else {
-                // Type-to-search
+                // Type-to-search - now includes space character
                 var character = event.text
                 if (character && character.length === 1 && character >= ' ' && character <= '~') {
                     var newSearchBuffer = searchBuffer + character
@@ -2485,8 +2484,8 @@ ApplicationWindow {
             // Instructions
             Text {
                 text: fontDialog.searchBuffer.length > 0 ? 
-                      "Type to search • Backspace to delete • Esc to clear" :
-                      "Type to search • ↑↓jk to navigate • Enter to select"
+                      "Type to search (spaces allowed) • Backspace to delete • Esc to clear" :
+                      "Type to search (spaces allowed) • ↑↓ to navigate • Enter to select"
                 font.family: notesManager.config.fontFamily
                 font.pixelSize: 12
                 color: colors.secondaryText
@@ -2556,8 +2555,22 @@ ApplicationWindow {
                     width: fontListView.width
                     height: fontDialog.cardHeight
 
-                    property bool isCurrentFont: notesManager.getCurrentFont() === modelData
                     property bool isKeyboardSelected: index === fontDialog.selectedFontIndex
+                    
+                    // Make current font reactive by binding to notesManager signals
+                    property bool isCurrentFont: false
+                    
+                    // Update current font status when config changes or when visible
+                    function updateCurrentFont() {
+                        isCurrentFont = notesManager.getCurrentFont() === modelData
+                    }
+                    
+                    Component.onCompleted: updateCurrentFont()
+                    
+                    Connections {
+                        target: notesManager
+                        function onConfigChanged() { updateCurrentFont() }
+                    }
 
                     color: isCurrentFont ? colors.selectedColor : 
                         isKeyboardSelected ? colors.hoverColor : colors.transparentColor
