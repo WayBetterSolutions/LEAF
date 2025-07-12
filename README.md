@@ -106,7 +106,8 @@ A clean, fast, and customizable note-taking application built with Python and Qt
 
 ### Theming
 - `Ctrl+T` - Cycle themes forward
-- `Ctrl+Shift+T` - Cycle themes backward
+- `Ctrl+Shift+T` - Open theme selection dialog
+- `Ctrl+Shift+E` - Open theme editor
 
 ### Display & Layout
 - `Ctrl+W` - Toggle fullscreen

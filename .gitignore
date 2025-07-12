@@ -9,5 +9,6 @@ ENV/
 .env
 .venv
 .claude
+# User data (exclude from git)
 data/
 config/

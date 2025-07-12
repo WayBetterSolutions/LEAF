@@ -214,7 +214,7 @@ ApplicationWindow {
             switch(type) {
                 case "error": return colors.error
                 case "success": return colors.success
-                case "warning": return colors.warning
+                case "warning": return colors.error
                 default: return colors.primary
             }
         }
@@ -408,6 +408,14 @@ ApplicationWindow {
         }
     }
     
+    Shortcut {
+        sequence: "Ctrl+Shift+E"
+        onActivated: {
+            // Open theme editor for current theme
+            themeEditor.openEditor(colors.currentTheme, false)
+        }
+    }
+    
     // Font shortcuts
     Shortcut {
         sequence: notesManager.config.shortcuts.fontCycle
@@ -457,7 +465,7 @@ ApplicationWindow {
                 if (success) {
                     notification.show("More columns", "success")
                 } else {
-                    notification.show("Maximum columns reached - all notes in one row", "warning")
+                    notification.show("Maximum columns reached - all notes in one row", "error")
                 }
             }
         }
@@ -475,7 +483,7 @@ ApplicationWindow {
                 if (success) {
                     notification.show("Fewer columns", "success")
                 } else {
-                    notification.show("Already at minimum (1 column)", "warning")
+                    notification.show("Already at minimum (1 column)", "error")
                 }
             }
         }
@@ -568,6 +576,8 @@ ApplicationWindow {
             } else if (appState.modal === "help") {
                 appState.modal = "none"
             } else if (appState.modal === "themes") {
+                appState.modal = "none"
+            } else if (appState.modal === "themeEditor") {
                 appState.modal = "none"
             } else if (appState.modal === "fonts") {
                 appState.modal = "none"
@@ -1450,6 +1460,138 @@ ApplicationWindow {
         }
     }
 
+    // Delete Theme Confirmation Modal
+    Rectangle {
+        anchors.fill: parent
+        color: colors.overlayColor
+        opacity: appState.modal === "deleteTheme" ? 0.7 : 0
+        visible: appState.modal === "deleteTheme"
+        z: 200
+        
+        Behavior on opacity {
+            NumberAnimation { duration: 150 }
+        }
+        
+        MouseArea {
+            anchors.fill: parent
+            onClicked: appState.modal = "themes"
+        }
+    }
+
+    Rectangle {
+        anchors.centerIn: parent
+        width: 400
+        height: 150
+        color: colors.modalBackground
+        radius: 10
+        border.color: colors.modalBorder
+        border.width: 2
+        visible: appState.modal === "deleteTheme"
+        z: 201
+        focus: appState.modal === "deleteTheme"
+        
+        Keys.onPressed: function(event) {
+            if (event.key === Qt.Key_Y || event.key === Qt.Key_Return) {
+                event.accepted = true
+                if (themeDialog.themeToDelete && colors.deleteTheme(themeDialog.themeToDelete.key)) {
+                    themeDialog.availableThemes = colors.getAllThemeInfo()
+                    if (themeDialog.selectedThemeIndex >= themeDialog.availableThemes.length) {
+                        themeDialog.selectedThemeIndex = themeDialog.availableThemes.length - 1
+                    }
+                    notification.show("Theme deleted: " + themeDialog.themeToDelete.displayName, "success")
+                    appState.modal = "themes"
+                } else {
+                    notification.show("Cannot delete current theme", "error")
+                    appState.modal = "themes"
+                }
+            } else if (event.key === Qt.Key_N || event.key === Qt.Key_Escape) {
+                event.accepted = true
+                appState.modal = "themes"
+            }
+        }
+        
+        Column {
+            anchors.centerIn: parent
+            spacing: 20
+            
+            Text {
+                text: themeDialog.themeToDelete ? ("Delete Theme: " + themeDialog.themeToDelete.displayName + "?") : "Delete Theme?"
+                font.family: notesManager.config.fontFamily
+                font.pixelSize: 18
+                color: colors.textColor
+                horizontalAlignment: Text.AlignHCenter
+                anchors.horizontalCenter: parent.horizontalCenter
+            }
+            
+            Text {
+                text: "This action cannot be undone."
+                font.family: notesManager.config.fontFamily
+                font.pixelSize: 12
+                color: colors.secondaryText
+                horizontalAlignment: Text.AlignHCenter
+                anchors.horizontalCenter: parent.horizontalCenter
+            }
+            
+            Row {
+                spacing: 15
+                anchors.horizontalCenter: parent.horizontalCenter
+                
+                Rectangle {
+                    width: 100
+                    height: 30
+                    color: colors.deleteButtonColor
+                    radius: 5
+                    
+                    Text {
+                        text: "Delete (Y)"
+                        color: "white"
+                        font.family: notesManager.config.fontFamily
+                        font.pixelSize: 12
+                        anchors.centerIn: parent
+                    }
+                    
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            if (themeDialog.themeToDelete && colors.deleteTheme(themeDialog.themeToDelete.key)) {
+                                themeDialog.availableThemes = colors.getAllThemeInfo()
+                                if (themeDialog.selectedThemeIndex >= themeDialog.availableThemes.length) {
+                                    themeDialog.selectedThemeIndex = themeDialog.availableThemes.length - 1
+                                }
+                                notification.show("Theme deleted: " + themeDialog.themeToDelete.displayName, "success")
+                                appState.modal = "themes"
+                            } else {
+                                notification.show("Cannot delete current theme", "error")
+                                appState.modal = "themes"
+                            }
+                        }
+                    }
+                }
+                
+                Rectangle {
+                    width: 100
+                    height: 30
+                    color: colors.surface
+                    border.color: colors.borderColor
+                    radius: 5
+                    
+                    Text {
+                        text: "Cancel (N)"
+                        color: colors.textColor
+                        font.family: notesManager.config.fontFamily
+                        font.pixelSize: 12
+                        anchors.centerIn: parent
+                    }
+                    
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: appState.modal = "themes"
+                    }
+                }
+            }
+        }
+    }
+
     // Delete confirmation overlay
     Rectangle {
         anchors.fill: parent
@@ -1838,6 +1980,12 @@ ApplicationWindow {
                         width: parent.width; itemHeight: 18; fontSize: 11
                         colors: helpDialog.helpColors
                     }
+                    HelpItem { 
+                        label: "Edit Theme" 
+                        shortcut: "Ctrl+Shift+E"
+                        width: parent.width; itemHeight: 18; fontSize: 11
+                        colors: helpDialog.helpColors
+                    }
                     
                     // ===== FONTS =====
                     Text {
@@ -2075,6 +2223,7 @@ ApplicationWindow {
         // Track selected theme for keyboard navigation
         property int selectedThemeIndex: 0
         property var availableThemes: colors.getAllThemeInfo()
+        property var themeToDelete: null
 
         // Calculate dynamic card height to fit all themes - MORE SPACE NOW!
         property real availableHeight: height - 80  // Just header + margins (was 120)
@@ -2119,6 +2268,7 @@ ApplicationWindow {
                 } else {
                     selectedThemeIndex = selectedThemeIndex - 1
                 }
+                scrollToSelected()
             } else if (event.key === Qt.Key_Down || event.key === Qt.Key_J) {
                 event.accepted = true
                 if (selectedThemeIndex >= availableThemes.length - 1) {
@@ -2126,15 +2276,38 @@ ApplicationWindow {
                 } else {
                     selectedThemeIndex = selectedThemeIndex + 1
                 }
+                scrollToSelected()
             } else if (event.key === Qt.Key_Home) {
                 event.accepted = true
                 selectedThemeIndex = 0
+                scrollToSelected()
             } else if (event.key === Qt.Key_End) {
                 event.accepted = true
                 selectedThemeIndex = availableThemes.length - 1
+                scrollToSelected()
             } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Space) {
                 event.accepted = true
                 selectCurrentTheme()
+            } else if (event.key === Qt.Key_N) {
+                event.accepted = true
+                // Create new theme
+                appState.modal = "none"
+                themeEditor.openEditor("", true)
+            } else if (event.key === Qt.Key_E) {
+                event.accepted = true
+                // Edit current theme
+                if (selectedThemeIndex >= 0 && selectedThemeIndex < availableThemes.length) {
+                    var themeInfo = availableThemes[selectedThemeIndex]
+                    appState.modal = "none"
+                    themeEditor.openEditor(themeInfo.key, false)
+                }
+            } else if (event.key === Qt.Key_D && event.modifiers === Qt.NoModifier) {
+                event.accepted = true
+                // Show delete confirmation
+                if (selectedThemeIndex >= 0 && selectedThemeIndex < availableThemes.length) {
+                    themeToDelete = availableThemes[selectedThemeIndex]
+                    appState.modal = "deleteTheme"
+                }
             }
         }
 
@@ -2148,110 +2321,200 @@ ApplicationWindow {
                 notification.show("Theme changed to " + themeInfo.displayName, "success")
             }
         }
+        
+        function scrollToSelected() {
+            if (selectedThemeIndex >= 0 && selectedThemeIndex < availableThemes.length && themeListView) {
+                themeListView.currentIndex = selectedThemeIndex
+                themeListView.positionViewAtIndex(selectedThemeIndex, ListView.Center)
+            }
+        }
 
         Column {
             anchors.fill: parent
             anchors.margins: 20
             spacing: 15
 
-            // Header only
-            Text {
-                text: "Select Theme"
-                font.family: notesManager.config.fontFamily
-                font.pixelSize: 24
-                font.bold: true
-                color: colors.helpDialogText
-                anchors.horizontalCenter: parent.horizontalCenter
-            }
-
-            // Theme list - NO SCROLLVIEW, just dynamic Column
+            // Header with theme count - centered like font dialog
             Column {
                 width: parent.width
-                spacing: 2  // Minimal spacing
-
-                Repeater {
-                    model: themeDialog.availableThemes
-
-                    Rectangle {
-                        width: parent.width
-                        height: themeDialog.cardHeight  // DYNAMIC height
-
-                        property bool isCurrentTheme: colors.currentTheme === modelData.key
-                        property bool isKeyboardSelected: index === themeDialog.selectedThemeIndex
-
-                        color: isCurrentTheme ? colors.selectedColor : 
-                            isKeyboardSelected ? colors.hoverColor : colors.transparentColor
-                        border.color: isCurrentTheme ? colors.accentColor : 
-                                    isKeyboardSelected ? colors.primary : colors.borderColor
-                        border.width: isCurrentTheme ? 2 : 1
-                        radius: 6
-
-                        Row {
-                            anchors.left: parent.left
-                            anchors.leftMargin: 12
-                            anchors.verticalCenter: parent.verticalCenter
-                            spacing: 8
-
-                            // Selection indicator
-                            Rectangle {
-                                width: 5
-                                height: 5
-                                radius: 2.5
-                                color: isCurrentTheme ? colors.accentColor : colors.transparentColor
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
-
-                            // Theme name
-                            Text {
-                                text: modelData.displayName
-                                color: colors.textColor
-                                font.family: notesManager.config.fontFamily
-                                font.pixelSize: Math.max(12, Math.min(16, themeDialog.cardHeight * 0.35))  // Dynamic font size
-                                font.bold: isCurrentTheme
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
-
-                            // Current theme indicator
-                            Text {
-                                text: isCurrentTheme ? "(current)" : ""
-                                color: colors.accentColor
-                                font.family: notesManager.config.fontFamily
-                                font.pixelSize: Math.max(10, Math.min(12, themeDialog.cardHeight * 0.25))  // Dynamic font size
-                                anchors.verticalCenter: parent.verticalCenter
+                spacing: 5
+                
+                Text {
+                    text: "Select Theme"
+                    font.family: notesManager.config.fontFamily
+                    font.pixelSize: 24
+                    font.bold: true
+                    color: colors.textColor
+                    anchors.horizontalCenter: parent.horizontalCenter
+                }
+                
+                Text {
+                    text: themeDialog.availableThemes.length + " themes available"
+                    font.family: notesManager.config.fontFamily
+                    font.pixelSize: 12
+                    color: colors.secondaryText
+                    anchors.horizontalCenter: parent.horizontalCenter
+                }
+            }
+            
+            // Action buttons row - similar to font menu search indicator area
+            Row {
+                spacing: 10
+                anchors.horizontalCenter: parent.horizontalCenter
+                
+                Rectangle {
+                    width: 80
+                    height: 25
+                    color: colors.primary
+                    radius: 4
+                    
+                    Text {
+                        text: "New"
+                        color: "white"
+                        font.pixelSize: 12
+                        anchors.centerIn: parent
+                    }
+                    
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            appState.modal = "none"
+                            themeEditor.openEditor("", true)
+                        }
+                    }
+                }
+                
+                Rectangle {
+                    width: 80
+                    height: 25
+                    color: colors.surface
+                    border.color: colors.borderColor
+                    radius: 4
+                    
+                    Text {
+                        text: "Edit"
+                        color: colors.primaryText
+                        font.pixelSize: 12
+                        anchors.centerIn: parent
+                    }
+                    
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            if (themeDialog.selectedThemeIndex >= 0 && themeDialog.selectedThemeIndex < themeDialog.availableThemes.length) {
+                                var themeInfo = themeDialog.availableThemes[themeDialog.selectedThemeIndex]
+                                appState.modal = "none"
+                                themeEditor.openEditor(themeInfo.key, false)
                             }
                         }
+                    }
+                }
+            }
 
-                        // Keyboard selection indicator
+            // Instructions
+            Text {
+                text: "↑↓: Navigate • Enter: Select • N: New • E: Edit • D: Delete"
+                font.family: notesManager.config.fontFamily
+                font.pixelSize: 12
+                color: colors.secondaryText
+                anchors.horizontalCenter: parent.horizontalCenter
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.WordWrap
+                width: parent.width
+            }
+
+            // Theme list with scrolling
+            ListView {
+                id: themeListView
+                width: parent.width
+                height: parent.height - y
+                clip: true
+                model: themeDialog.availableThemes
+                currentIndex: themeDialog.selectedThemeIndex
+                
+                // Smooth scrolling like font menu
+                highlightMoveDuration: 200
+                highlightMoveVelocity: -1
+                
+                delegate: Rectangle {
+                    width: themeListView.width
+                    height: themeDialog.cardHeight  // Dynamic height like font menu
+
+                    property bool isCurrentTheme: colors.currentTheme === modelData.key
+                    property bool isKeyboardSelected: index === themeDialog.selectedThemeIndex
+
+                    color: isCurrentTheme ? colors.selectedColor : 
+                        isKeyboardSelected ? colors.hoverColor : colors.transparentColor
+                    border.color: isCurrentTheme ? colors.accentColor : 
+                                isKeyboardSelected ? colors.primary : colors.borderColor
+                    border.width: isCurrentTheme ? 2 : 0
+                    radius: 6
+
+                    Row {
+                        anchors.left: parent.left
+                        anchors.leftMargin: 12
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 8
+
+                        // Selection indicator
                         Rectangle {
-                            anchors.right: parent.right
-                            anchors.rightMargin: 12
+                            width: 5
+                            height: 5
+                            radius: 2.5
+                            color: isCurrentTheme ? colors.accentColor : colors.transparentColor
                             anchors.verticalCenter: parent.verticalCenter
-                            width: Math.max(14, Math.min(20, themeDialog.cardHeight * 0.4))  // Dynamic size
-                            height: width
-                            radius: width / 2
-                            color: isKeyboardSelected ? colors.primary : colors.transparentColor
-                            visible: isKeyboardSelected
-
-                            Text {
-                                text: "▸"
-                                color: colors.primaryText
-                                font.pixelSize: Math.max(8, Math.min(12, themeDialog.cardHeight * 0.25))  // Dynamic font size
-                                anchors.centerIn: parent
-                            }
                         }
 
-                        MouseArea {
-                            anchors.fill: parent
-                            hoverEnabled: true
+                        // Theme name
+                        Text {
+                            text: modelData.displayName
+                            color: colors.textColor
+                            font.family: notesManager.config.fontFamily
+                            font.pixelSize: Math.max(12, Math.min(16, themeDialog.cardHeight * 0.35))
+                            font.bold: isCurrentTheme
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
 
-                            onEntered: {
-                                themeDialog.selectedThemeIndex = index
-                            }
+                        // Current theme indicator
+                        Text {
+                            text: isCurrentTheme ? "(current)" : ""
+                            color: colors.accentColor
+                            font.family: notesManager.config.fontFamily
+                            font.pixelSize: Math.max(10, Math.min(12, themeDialog.cardHeight * 0.25))
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
 
-                            onClicked: {
-                                themeDialog.selectedThemeIndex = index
-                                themeDialog.selectCurrentTheme()
-                            }
+                    // Keyboard selection indicator
+                    Rectangle {
+                        anchors.right: parent.right
+                        anchors.rightMargin: 12
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: Math.max(14, Math.min(20, themeDialog.cardHeight * 0.4))
+                        height: width
+                        radius: width / 2
+                        color: isKeyboardSelected ? colors.primary : colors.transparentColor
+                        visible: isKeyboardSelected
+
+                        Text {
+                            text: "▸"
+                            color: colors.primaryText
+                            font.pixelSize: Math.max(8, Math.min(12, themeDialog.cardHeight * 0.25))
+                            anchors.centerIn: parent
+                        }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        hoverEnabled: true
+
+                        onEntered: {
+                            themeDialog.selectedThemeIndex = index
+                        }
+
+                        onClicked: {
+                            themeDialog.selectedThemeIndex = index
+                            themeDialog.selectCurrentTheme()
                         }
                     }
                 }
@@ -3592,5 +3855,10 @@ ApplicationWindow {
                 }
             }
         }
+    }
+    
+    // Theme Editor
+    ThemeEditor {
+        id: themeEditor
     }
 }
