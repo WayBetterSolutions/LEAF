@@ -9,6 +9,5 @@ ENV/
 .env
 .venv
 .claude
-collections/
-collections.json
-font_cache.json
+data/
+config/

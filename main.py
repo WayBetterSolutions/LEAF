@@ -148,9 +148,9 @@ class NotesManager(QAbstractListModel):
         super().__init__()
 
         # File paths
-        self.config_file = "config.json"
-        self.collections_dir = "collections"
-        self.collections_file = "collections.json"
+        self.config_file = "config/config.json"
+        self.collections_dir = "data/collections"
+        self.collections_file = "data/collections.json"
         
         # Collections state
         self._collections = []
@@ -171,7 +171,7 @@ class NotesManager(QAbstractListModel):
         self._font_cache = None
         self._font_loading = False
         self._font_loader = None
-        self._font_cache_file = "font_cache.json"
+        self._font_cache_file = "data/font_cache.json"
         
         # Initialize Notes Manager
         
@@ -202,14 +202,23 @@ class NotesManager(QAbstractListModel):
     def _ensure_directories_exist(self):
         """Ensure all necessary directories exist"""
         try:
+            # Create data directory
+            if not os.path.exists("data"):
+                os.makedirs("data")
+            
+            # Create config directory  
+            if not os.path.exists("config"):
+                os.makedirs("config")
+            
+            # Create collections directory
             if not os.path.exists(self.collections_dir):
                 os.makedirs(self.collections_dir)
                 pass  # Created collections directory
             else:
                 pass  # Collections directory exists
         except Exception as e:
-            print(f"✗ Error creating collections directory: {e}")
-            self.loadError.emit(f"Cannot create collections directory: {e}")
+            print(f"✗ Error creating directories: {e}")
+            self.loadError.emit(f"Cannot create directories: {e}")
 
     def _migrate_old_files(self):
         """Clean up any legacy files from older versions"""
@@ -1887,7 +1896,7 @@ def main():
     notes_manager = NotesManager()
     
     engine.rootContext().setContextProperty("notesManager", notes_manager)
-    engine.load(QUrl.fromLocalFile("main.qml"))
+    engine.load(QUrl.fromLocalFile("qml/main.qml"))
     
     if not engine.rootObjects():
         return -1
