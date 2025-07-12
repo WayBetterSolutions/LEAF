@@ -367,6 +367,9 @@ class NotesManager(QAbstractListModel):
                 self._next_id = 0
                 self.notesChanged.emit()
                 self.filteredNotesChanged.emit()
+                
+                # Trigger card bounds update for first collection setup
+                self.cardBoundsNeedUpdate.emit()
                 pass  # Set up first collection
                 return True
         
@@ -438,7 +441,9 @@ class NotesManager(QAbstractListModel):
                 "prevCollection": "Ctrl+Shift+Tab",
                 "deleteCollection": "Ctrl+Shift+D",
                 "renameCollection": "F2",
-                "showStats": "Ctrl+Space"
+                "showStats": "Ctrl+Space",
+                "increaseColumns": "Ctrl+Up",
+                "decreaseColumns": "Ctrl+Down"
             }
         }
 
@@ -1148,6 +1153,9 @@ class NotesManager(QAbstractListModel):
         
         self.endResetModel()
         self.filteredNotesChanged.emit()
+        
+        # Trigger card bounds recalculation when filter changes number of visible notes
+        self.cardBoundsNeedUpdate.emit()
     
     @Slot(str, result=int)
     def createNote(self, content):
@@ -1188,6 +1196,9 @@ class NotesManager(QAbstractListModel):
         # Save to current collection
         self.save_notes()
         self.notesChanged.emit()
+        
+        # Trigger card bounds recalculation for new note
+        self.cardBoundsNeedUpdate.emit()
         pass  # Created note
         return note_id
     
@@ -1247,6 +1258,9 @@ class NotesManager(QAbstractListModel):
         # Save to current collection
         self.save_notes()
         self.notesChanged.emit()
+        
+        # Trigger card bounds recalculation after deletion
+        self.cardBoundsNeedUpdate.emit()
         pass  # Deleted note
     
     @Slot(int, result='QVariant')

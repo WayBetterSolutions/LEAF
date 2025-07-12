@@ -38,6 +38,29 @@ ApplicationWindow {
             // Force cards to fill bounds with actual grid dimensions
             if (gridViewRef && appState.isGridView()) {
                 notesManager.forceCardFillBounds(gridViewRef.width, gridViewRef.leftMargin)
+            } else if (appState.isGridView()) {
+                // GridView not ready yet, retry after a short delay
+                cardBoundsUpdateTimer.restart()
+            }
+        }
+    }
+
+    // Timer to retry card bounds update when GridView is not ready initially
+    Timer {
+        id: cardBoundsUpdateTimer
+        interval: 100
+        repeat: true
+        property int retryCount: 0
+        onTriggered: {
+            if (gridViewRef && appState.isGridView()) {
+                notesManager.forceCardFillBounds(gridViewRef.width, gridViewRef.leftMargin)
+                stop()
+                retryCount = 0
+            } else if (retryCount < 20) { // Try for up to 2 seconds
+                retryCount++
+            } else {
+                stop()
+                retryCount = 0
             }
         }
     }
