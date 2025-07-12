@@ -5,11 +5,11 @@ import re
 import colorsys
 from pathlib import Path
 from datetime import datetime, timedelta
-from PySide6.QtGui import QGuiApplication, QFont
+from PySide6.QtGui import QGuiApplication, QFont, QFontDatabase
 from PySide6.QtQml import QmlElement, qmlRegisterType
 from PySide6.QtCore import (
     QAbstractListModel, QModelIndex,
-    Qt, Signal, Slot, Property, QUrl, QTimer, QByteArray
+    Qt, Signal, Slot, Property, QUrl, QTimer, QByteArray, QThread
 )
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuickControls2 import QQuickStyle 
@@ -17,6 +17,81 @@ from PySide6.QtWidgets import QApplication
 
 QML_IMPORT_NAME = "NotesApp"
 QML_IMPORT_MAJOR_VERSION = 1
+
+class FontLoader(QThread):
+    """Background thread for loading fonts without blocking UI - OPTIMIZED"""
+    fontsLoaded = Signal(list)
+    
+    def run(self):
+        """Load fonts in background thread with aggressive filtering"""
+        try:
+            font_db = QFontDatabase()
+            families = font_db.families()
+            
+            # MUCH more aggressive filtering for speed
+            priority_fonts = []
+            regular_fonts = []
+            
+            # Expanded priority patterns for common coding/UI fonts
+            priority_patterns = [
+                'victor', 'fira', 'jetbrains', 'iosevka', 'inconsolata', 'hack', 'cascadia',
+                'source code', 'ubuntu mono', 'roboto mono', 'consolas', 'courier', 'monaco', 'menlo',
+                'dejavu', 'liberation', 'noto', 'arial', 'helvetica', 'times', 'georgia'
+            ]
+            
+            # Aggressive skip patterns to reduce font count
+            skip_patterns = [
+                'symbol', 'wingdings', 'webdings', 'mt extra', 'marlett', 'dingbats', 
+                'emoji', 'emoticons', 'icon', 'zapf', 'dingbat', 'naskh', 'kacst',
+                'mathematica', 'stix', 'latex', 'cm-', 'lm roman', 'tex gyre',
+                'nimbus', 'urw', 'p052', 'z003', 'd050', 'c059', 'standard symbols'
+            ]
+            
+            for family in families:
+                # Quick filters first
+                if len(family) > 40:  # More aggressive length limit
+                    continue
+                    
+                family_lower = family.lower()
+                
+                # Skip vertical fonts and special encodings
+                if family_lower.startswith('@') or family_lower.startswith('.'):
+                    continue
+                
+                # Skip fonts with numbers (usually system fonts)
+                if any(char.isdigit() for char in family[:10]):
+                    continue
+                    
+                # Skip problematic fonts
+                skip = False
+                for pattern in skip_patterns:
+                    if pattern in family_lower:
+                        skip = True
+                        break
+                        
+                if not skip:
+                    # Prioritize common programming fonts
+                    is_priority = any(pattern in family_lower for pattern in priority_patterns)
+                    
+                    if is_priority:
+                        priority_fonts.append(family)
+                    else:
+                        # Only include regular fonts with reasonable names
+                        if len(family) <= 25 and ' ' not in family[:3]:  # Avoid complex font names
+                            regular_fonts.append(family)
+            
+            # Sort and limit total fonts for performance
+            sorted_priority = sorted(priority_fonts)
+            sorted_regular = sorted(regular_fonts[:100])  # Limit regular fonts
+            
+            # Combine: priority fonts first, then limited regular fonts
+            all_fonts = sorted_priority + sorted_regular
+            
+            self.fontsLoaded.emit(all_fonts)
+            
+        except Exception as e:
+            # Emit empty list on error
+            self.fontsLoaded.emit([])
 
 @QmlElement
 class NotesManager(QAbstractListModel):
@@ -29,6 +104,7 @@ class NotesManager(QAbstractListModel):
     loadError = Signal(str)
     saveSuccess = Signal()
     cardBoundsNeedUpdate = Signal()
+    fontsUpdated = Signal()  # New signal for when fonts finish loading
     
     # Role constants
     IdRole       = Qt.UserRole + 1
@@ -91,6 +167,12 @@ class NotesManager(QAbstractListModel):
         # Config state
         self._config = {}
         
+        # Font cache with disk persistence
+        self._font_cache = None
+        self._font_loading = False
+        self._font_loader = None
+        self._font_cache_file = "font_cache.json"
+        
         # Initialize Notes Manager
         
         # Initialize everything in the right order
@@ -98,6 +180,13 @@ class NotesManager(QAbstractListModel):
         self.load_config()
         self._migrate_old_files()  # Clean up any legacy files
         self.load_collections()
+        
+        # Load cached fonts immediately if available
+        self._load_font_cache_from_disk()
+        
+        # Start background font loading during app startup if no cache
+        if self._font_cache is None:
+            self.preloadFonts()
 
         # Handle first-time setup or load existing collections
         if self._needs_first_collection_setup():
@@ -332,6 +421,9 @@ class NotesManager(QAbstractListModel):
                 "decreaseCardHeight": "Ctrl+Shift+Up",
                 "themeCycle": "Ctrl+T",
                 "themeCycleBackward": "Ctrl+Shift+T",
+                "fontCycle": "Ctrl+Alt+F",
+                "fontCycleBackward": "Ctrl+Alt+Shift+F",
+                "fontSelection": "Ctrl+Shift+F",
                 "newCollection": "Ctrl+Shift+N",
                 "nextCollection": "Ctrl+Tab",
                 "prevCollection": "Ctrl+Shift+Tab",
@@ -1501,6 +1593,138 @@ class NotesManager(QAbstractListModel):
     @Slot(result=list)
     def getAvailableThemes(self):
         return ["nightOwl", "dracula", "monokai", "githubDark", "solarizedLight", "catppuccin", "tokyoNight", "nordDark", "gruvboxDark", "oneDark", "materialDark", "ayuDark", "forest"]
+    
+    def _load_font_cache_from_disk(self):
+        """Load font cache from disk if available"""
+        try:
+            if os.path.exists(self._font_cache_file):
+                with open(self._font_cache_file, 'r', encoding='utf-8') as f:
+                    cached_data = json.load(f)
+                    # Check if cache is recent (within 30 days - longer cache)
+                    cache_time = datetime.fromisoformat(cached_data.get('timestamp', ''))
+                    if datetime.now() - cache_time < timedelta(days=30):
+                        self._font_cache = cached_data.get('fonts', [])
+                        return True
+        except Exception:
+            pass
+        return False
+    
+    def _save_font_cache_to_disk(self, fonts):
+        """Save font cache to disk"""
+        try:
+            cache_data = {
+                'timestamp': datetime.now().isoformat(),
+                'fonts': fonts
+            }
+            with open(self._font_cache_file, 'w', encoding='utf-8') as f:
+                json.dump(cache_data, f)
+        except Exception:
+            pass  # Ignore disk cache errors
+    
+    def _on_fonts_loaded(self, fonts):
+        """Handle fonts loaded from background thread"""
+        self._font_cache = fonts
+        self._font_loading = False
+        self._save_font_cache_to_disk(fonts)
+        # Clean up thread
+        if self._font_loader:
+            self._font_loader.deleteLater()
+            self._font_loader = None
+        # Notify QML that fonts are updated
+        self.fontsUpdated.emit()
+
+    # Font management methods with optimized caching
+    @Slot(result=list)
+    def getAvailableFonts(self):
+        """Get available system fonts with instant fallback"""
+        # If we have cached fonts, return them immediately
+        if self._font_cache is not None:
+            return self._font_cache
+            
+        # Return immediate basic fonts while loading in background
+        basic_fonts = [
+            "Victor Mono", "Fira Code", "JetBrains Mono", "Iosevka", "Iosevka NFM",
+            "DejaVu Sans Mono", "Ubuntu Mono", "Consolas", "Courier New", "Monaco",
+            "Arial", "Helvetica", "Times New Roman", "Georgia", "Trebuchet MS"
+        ]
+        
+        # Start background loading if not already started
+        if not self._font_loading and self._font_loader is None:
+            self._font_loading = True
+            self._font_loader = FontLoader()
+            self._font_loader.fontsLoaded.connect(self._on_fonts_loaded)
+            self._font_loader.start()
+            
+        return basic_fonts  # Return basic fonts immediately
+    
+    @Slot(result=str)
+    def getCurrentFont(self):
+        """Get current font family"""
+        return self._config.get("fontFamily", "Victor Mono")
+    
+    @Slot(str)
+    def setFont(self, font_family):
+        """Set the font family"""
+        if font_family and font_family.strip():
+            self._config["fontFamily"] = font_family.strip()
+            self.save_config()
+            self.configChanged.emit()
+    
+    @Slot()
+    def cycleFontForward(self):
+        """Cycle to the next font in the list"""
+        available_fonts = self.getAvailableFonts()
+        if not available_fonts:
+            return
+            
+        current_font = self.getCurrentFont()
+        try:
+            current_index = available_fonts.index(current_font)
+            next_index = (current_index + 1) % len(available_fonts)
+        except ValueError:
+            # Current font not in list, start from beginning
+            next_index = 0
+            
+        next_font = available_fonts[next_index]
+        self.setFont(next_font)
+    
+    @Slot()
+    def cycleFontBackward(self):
+        """Cycle to the previous font in the list"""
+        available_fonts = self.getAvailableFonts()
+        if not available_fonts:
+            return
+            
+        current_font = self.getCurrentFont()
+        try:
+            current_index = available_fonts.index(current_font)
+            prev_index = (current_index - 1) % len(available_fonts)
+        except ValueError:
+            # Current font not in list, start from end
+            prev_index = len(available_fonts) - 1
+            
+        prev_font = available_fonts[prev_index]
+        self.setFont(prev_font)
+    
+    @Slot()
+    def preloadFonts(self):
+        """Preload fonts in background to improve UI responsiveness"""
+        if self._font_cache is None and not self._font_loading:
+            # Start threaded loading
+            self.getAvailableFonts()
+    
+    @Slot(result=bool)
+    def fontsLoading(self):
+        """Check if fonts are currently being loaded"""
+        return self._font_loading
+    
+    @Slot(result=int)
+    def getFontCount(self):
+        """Get number of available fonts (for progress indication)"""
+        if self._font_cache:
+            return len(self._font_cache)
+        return 0
+    
     
     @Slot(result='QVariant')
     def getOverallStats(self):

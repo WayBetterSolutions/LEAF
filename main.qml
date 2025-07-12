@@ -87,6 +87,9 @@ ApplicationWindow {
         if (savedTheme) {
             colors.setTheme(savedTheme)
         }
+        
+        // Start font loading immediately but asynchronously
+        notesManager.preloadFonts()
     }
 
     function toggleFullscreen() {
@@ -226,7 +229,9 @@ ApplicationWindow {
         Behavior on opacity {
             NumberAnimation { duration: 150 }
         }
-    }    
+    }
+    
+    // Removed fontUpdateTimer - using Connections for font updates instead
 
     // Keyboard shortcuts
     Shortcut {
@@ -379,6 +384,29 @@ ApplicationWindow {
             appState.modal = "themes"
         }
     }
+    
+    // Font shortcuts
+    Shortcut {
+        sequence: notesManager.config.shortcuts.fontCycle
+        onActivated: {
+            notesManager.cycleFontForward()
+            notification.show("Font changed to " + notesManager.getCurrentFont(), "success")
+        }
+    }
+    Shortcut {
+        sequence: notesManager.config.shortcuts.fontCycleBackward
+        onActivated: {
+            notesManager.cycleFontBackward()
+            notification.show("Font changed to " + notesManager.getCurrentFont(), "success")
+        }
+    }
+    Shortcut {
+        sequence: notesManager.config.shortcuts.fontSelection
+        onActivated: {
+            // Show font selection dialog
+            appState.modal = "fonts"
+        }
+    }
 
     Shortcut {
         sequence: notesManager.config.shortcuts.optimizeCardWidth
@@ -517,6 +545,8 @@ ApplicationWindow {
             } else if (appState.modal === "help") {
                 appState.modal = "none"
             } else if (appState.modal === "themes") {
+                appState.modal = "none"
+            } else if (appState.modal === "fonts") {
                 appState.modal = "none"
             } else if (appState.modal === "newCollection") {
                 appState.modal = "none"
@@ -1786,6 +1816,37 @@ ApplicationWindow {
                         colors: helpDialog.helpColors
                     }
                     
+                    // ===== FONTS =====
+                    Text {
+                        text: "Fonts"
+                        font.family: notesManager.config.fontFamily
+                        font.pixelSize: 16
+                        font.bold: true
+                        color: colors.accentColor
+                        width: parent.width
+                        height: 25
+                        topPadding: 10
+                    }
+                    
+                    HelpItem { 
+                        label: "Cycle Font Forward" 
+                        shortcut: notesManager.config.shortcuts.fontCycle 
+                        width: parent.width; itemHeight: 18; fontSize: 11
+                        colors: helpDialog.helpColors
+                    }
+                    HelpItem { 
+                        label: "Cycle Font Backward" 
+                        shortcut: notesManager.config.shortcuts.fontCycleBackward 
+                        width: parent.width; itemHeight: 18; fontSize: 11
+                        colors: helpDialog.helpColors
+                    }
+                    HelpItem { 
+                        label: "Select Font" 
+                        shortcut: notesManager.config.shortcuts.fontSelection 
+                        width: parent.width; itemHeight: 18; fontSize: 11
+                        colors: helpDialog.helpColors
+                    }
+                    
                     // ===== DISPLAY & LAYOUT =====
                     Text {
                         text: "Display & Layout"
@@ -2171,6 +2232,416 @@ ApplicationWindow {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    // Font selection dialog
+    Rectangle {
+        id: fontDialog
+        anchors.centerIn: parent
+        width: Math.min(window.width * 0.9, 800)
+        height: Math.min(window.height * 0.9, 600)
+        color: colors.helpDialogBackground
+        opacity: 0.95
+        radius: 15
+        border.color: colors.helpDialogBorder
+        border.width: 2
+        visible: appState.modal === "fonts"
+        z: 203
+        focus: appState.modal === "fonts"
+
+        // Track selected font for keyboard navigation
+        property int selectedFontIndex: 0
+        property var availableFonts: []
+        
+        // Type-to-search functionality
+        property string searchBuffer: ""
+
+        // Calculate dynamic card height to fit all fonts - SAME as theme dialog
+        property real availableHeight: height - 80
+        property real cardHeight: Math.max(35, Math.min(60, availableHeight / Math.max(1, availableFonts.length) - 4))
+
+        // Initialize selected font index when dialog opens
+        Component.onCompleted: {
+            if (appState.modal === "fonts") {
+                updateSelectedIndex()
+            }
+        }
+
+        // Update when modal state changes  
+        onVisibleChanged: {
+            if (visible) {
+                // INSTANT: Load fonts immediately (basic fonts available instantly)
+                var fonts = notesManager.getAvailableFonts()
+                if (fonts.length > 0) {
+                    availableFonts = fonts
+                } else {
+                    // FALLBACK: If no fonts at all, show minimal hardcoded list
+                    availableFonts = ["Victor Mono", "Arial", "Helvetica", "Consolas", "Georgia"]
+                }
+                updateSelectedIndex()
+                searchBuffer = ""
+                searchClearTimer.stop()
+                
+                // Start background loading for full font list
+                notesManager.preloadFonts()
+            }
+        }
+
+        // Listen for font updates from background thread
+        Connections {
+            target: notesManager
+            function onFontsUpdated() {
+                if (fontDialog.visible) {
+                    // Update font list when background loading completes
+                    fontDialog.availableFonts = notesManager.getAvailableFonts()
+                    fontDialog.updateSelectedIndex()
+                }
+            }
+        }
+
+        function updateSelectedIndex() {
+            var currentFont = notesManager.getCurrentFont()
+            for (var i = 0; i < availableFonts.length; i++) {
+                if (availableFonts[i] === currentFont) {
+                    selectedFontIndex = i
+                    return
+                }
+            }
+            selectedFontIndex = 0
+        }
+
+        function selectCurrentFont() {
+            if (selectedFontIndex >= 0 && selectedFontIndex < availableFonts.length) {
+                var selectedFont = availableFonts[selectedFontIndex]
+                notesManager.setFont(selectedFont)
+                notification.show("Font changed to " + selectedFont, "success")
+                appState.modal = "none"
+            }
+        }
+
+        gradient: Gradient {
+            GradientStop { position: 0.0; color: Qt.lighter(colors.surface, 1.1) }
+            GradientStop { position: 1.0; color: Qt.darker(colors.surface, 1.1) }
+        }
+
+        // Enhanced keyboard navigation with hjkl and auto-scrolling
+        Keys.onPressed: (event) => {
+            if (event.key === Qt.Key_Up || event.key === Qt.Key_K) {
+                event.accepted = true
+                if (selectedFontIndex <= 0) {
+                    selectedFontIndex = availableFonts.length - 1
+                } else {
+                    selectedFontIndex = selectedFontIndex - 1
+                }
+                scrollToSelected()
+            } else if (event.key === Qt.Key_Down || event.key === Qt.Key_J) {
+                event.accepted = true
+                if (selectedFontIndex >= availableFonts.length - 1) {
+                    selectedFontIndex = 0
+                } else {
+                    selectedFontIndex = selectedFontIndex + 1
+                }
+                scrollToSelected()
+            } else if (event.key === Qt.Key_Home) {
+                event.accepted = true
+                selectedFontIndex = 0
+                scrollToSelected()
+            } else if (event.key === Qt.Key_End) {
+                event.accepted = true
+                selectedFontIndex = availableFonts.length - 1
+                scrollToSelected()
+            } else if (event.key === Qt.Key_PageUp) {
+                event.accepted = true
+                selectedFontIndex = Math.max(0, selectedFontIndex - 10)
+                scrollToSelected()
+            } else if (event.key === Qt.Key_PageDown) {
+                event.accepted = true
+                selectedFontIndex = Math.min(availableFonts.length - 1, selectedFontIndex + 10)
+                scrollToSelected()
+            } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Space) {
+                event.accepted = true
+                selectCurrentFont()
+            } else if (event.key === Qt.Key_Escape) {
+                if (searchBuffer.length > 0) {
+                    searchBuffer = ""
+                    searchClearTimer.stop()
+                    event.accepted = true
+                }
+            } else if (event.key === Qt.Key_Backspace) {
+                if (searchBuffer.length > 0) {
+                    searchBuffer = searchBuffer.slice(0, -1)
+                    if (searchBuffer.length > 0) {
+                        searchForFont(searchBuffer)
+                        searchClearTimer.restart()
+                    }
+                    event.accepted = true
+                }
+            } else {
+                // Type-to-search
+                var character = event.text
+                if (character && character.length === 1 && character >= ' ' && character <= '~') {
+                    var newSearchBuffer = searchBuffer + character
+                    var tempBuffer = searchBuffer
+                    searchBuffer = newSearchBuffer
+                    
+                    if (searchForFont(searchBuffer)) {
+                        searchClearTimer.restart()
+                    } else {
+                        searchBuffer = tempBuffer
+                    }
+                    event.accepted = true
+                }
+            }
+        }
+
+        function searchForFont(searchText) {
+            if (!searchText || searchText.length === 0) {
+                return true
+            }
+            
+            var lowerSearch = searchText.toLowerCase()
+            for (var i = 0; i < availableFonts.length; i++) {
+                var fontNameLower = availableFonts[i].toLowerCase()
+                if (fontNameLower.startsWith(lowerSearch)) {
+                    selectedFontIndex = i
+                    scrollToSelected()  // Auto-scroll to match
+                    return true
+                }
+            }
+            
+            // If no exact start match, find first font containing the search text
+            for (var j = 0; j < availableFonts.length; j++) {
+                var fontNameLower2 = availableFonts[j].toLowerCase()
+                if (fontNameLower2.includes(lowerSearch)) {
+                    selectedFontIndex = j
+                    scrollToSelected()  // Auto-scroll to match
+                    return true
+                }
+            }
+            
+            return false
+        }
+
+        function scrollToSelected() {
+            if (selectedFontIndex >= 0 && selectedFontIndex < availableFonts.length && fontListView) {
+                // Update ListView currentIndex to trigger smooth scrolling
+                fontListView.currentIndex = selectedFontIndex
+                
+                // Force immediate positioning to the selected item
+                fontListView.positionViewAtIndex(selectedFontIndex, ListView.Center)
+            }
+        }
+        Column {
+            anchors.fill: parent
+            anchors.margins: 20
+            spacing: 15
+
+            // Header with font count - centered like theme dialog
+            Column {
+                width: parent.width
+                spacing: 5
+                
+                Text {
+                    text: "Select Font"
+                    font.family: notesManager.config.fontFamily
+                    font.pixelSize: 24
+                    font.bold: true
+                    color: colors.textColor
+                    anchors.horizontalCenter: parent.horizontalCenter
+                }
+                
+                Text {
+                    text: fontDialog.availableFonts.length + " fonts available"
+                    font.family: notesManager.config.fontFamily
+                    font.pixelSize: 12
+                    color: colors.secondaryText
+                    anchors.horizontalCenter: parent.horizontalCenter
+                }
+            }
+            
+            // Search indicator
+            Rectangle {
+                width: Math.max(120, searchText.implicitWidth + 20)
+                height: 25
+                color: colors.cardColor
+                border.color: colors.borderColor
+                border.width: 1
+                radius: 4
+                anchors.horizontalCenter: parent.horizontalCenter
+                visible: fontDialog.searchBuffer.length > 0
+                
+                Text {
+                    id: searchText
+                    text: "Search: " + fontDialog.searchBuffer
+                    font.family: notesManager.config.fontFamily
+                    font.pixelSize: 12
+                    color: colors.accentColor
+                    anchors.centerIn: parent
+                }
+            }
+
+            // Instructions
+            Text {
+                text: fontDialog.searchBuffer.length > 0 ? 
+                      "Type to search • Backspace to delete • Esc to clear" :
+                      "Type to search • ↑↓jk to navigate • Enter to select"
+                font.family: notesManager.config.fontFamily
+                font.pixelSize: 12
+                color: colors.secondaryText
+                anchors.horizontalCenter: parent.horizontalCenter
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.WordWrap
+                width: parent.width
+            }
+
+            // Font list using ListView for better scrolling control
+            ListView {
+                id: fontListView
+                width: parent.width
+                height: parent.height - y
+                clip: true
+                model: fontDialog.availableFonts.length > 0 ? fontDialog.availableFonts : []
+                currentIndex: fontDialog.selectedFontIndex
+                
+                // Smooth scrolling
+                highlightMoveDuration: 200
+                highlightMoveVelocity: -1
+                
+                // Loading state when no fonts
+                Rectangle {
+                    anchors.fill: parent
+                    color: colors.transparentColor
+                    visible: fontDialog.availableFonts.length === 0
+                    
+                    Column {
+                        anchors.centerIn: parent
+                        spacing: 15
+                        
+                        Text {
+                            text: "Loading fonts..."
+                            font.family: notesManager.config.fontFamily
+                            font.pixelSize: 16
+                            color: colors.secondaryText
+                            anchors.horizontalCenter: parent.horizontalCenter
+                        }
+                        
+                        Rectangle {
+                            width: 200
+                            height: 4
+                            color: colors.borderColor
+                            radius: 2
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            
+                            Rectangle {
+                                id: loadingBar
+                                width: parent.width * 0.7
+                                height: parent.height
+                                color: colors.accentColor
+                                radius: 2
+                                
+                                PropertyAnimation on x {
+                                    from: -140
+                                    to: 200
+                                    duration: 1500
+                                    loops: Animation.Infinite
+                                }
+                            }
+                        }
+                    }
+                }
+
+                delegate: Rectangle {
+                    width: fontListView.width
+                    height: fontDialog.cardHeight
+
+                    property bool isCurrentFont: notesManager.getCurrentFont() === modelData
+                    property bool isKeyboardSelected: index === fontDialog.selectedFontIndex
+
+                    color: isCurrentFont ? colors.selectedColor : 
+                        isKeyboardSelected ? colors.hoverColor : colors.transparentColor
+                    border.color: isCurrentFont ? colors.accentColor : colors.borderColor
+                    border.width: isCurrentFont ? 2 : 0
+                    radius: 6
+
+                    Row {
+                        anchors.left: parent.left
+                        anchors.leftMargin: 12
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 8
+
+                        // Selection indicator
+                        Rectangle {
+                            width: 5
+                            height: 5
+                            radius: 2.5
+                            color: isCurrentFont ? colors.accentColor : colors.transparentColor
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+
+                        // Font name
+                        Text {
+                            text: modelData
+                            color: colors.textColor
+                            font.family: modelData
+                            font.pixelSize: Math.max(12, Math.min(16, fontDialog.cardHeight * 0.35))
+                            font.bold: isCurrentFont
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+
+                        // Current indicator text
+                        Text {
+                            text: isCurrentFont ? "(current)" : ""
+                            color: colors.accentColor
+                            font.family: notesManager.config.fontFamily
+                            font.pixelSize: Math.max(10, Math.min(12, fontDialog.cardHeight * 0.25))
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
+
+                    // Keyboard selection indicator
+                    Rectangle {
+                        anchors.right: parent.right
+                        anchors.rightMargin: 12
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: Math.max(14, Math.min(20, fontDialog.cardHeight * 0.4))
+                        height: width
+                        radius: width / 2
+                        color: isKeyboardSelected ? colors.primary : colors.transparentColor
+                        visible: isKeyboardSelected
+
+                        Text {
+                            text: "▸"
+                            color: colors.primaryText
+                            font.pixelSize: Math.max(8, Math.min(12, fontDialog.cardHeight * 0.25))
+                            anchors.centerIn: parent
+                        }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        hoverEnabled: true
+
+                        onEntered: {
+                            fontDialog.selectedFontIndex = index
+                        }
+
+                        onClicked: {
+                            fontDialog.selectedFontIndex = index
+                            fontDialog.selectCurrentFont()
+                        }
+                    }
+                }
+            }
+        }
+
+        Timer {
+            id: searchClearTimer
+            interval: 3000
+            repeat: false
+            onTriggered: {
+                fontDialog.searchBuffer = ""
             }
         }
     }
@@ -2781,7 +3252,6 @@ ApplicationWindow {
 
                         // Enable built-in auto-scrolling
                         currentIndex: selectedNoteIndex
-                        highlightFollowsCurrentItem: true
                         keyNavigationEnabled: false
 
                         // Optimize highlight positioning
