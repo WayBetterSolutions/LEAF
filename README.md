@@ -1,9 +1,8 @@
 <div align="center">
   <img src="assets/LEAFico.ico" alt="LEAF Logo" width="256" height="256">
-  
-  # LEAF Notes
-  ## Literature Environment & Archival Framework
 </div>
+
+## Literature Environment & Archival Framework
 
 A clean, fast, and customizable note-taking application built with Python and Qt. LEAF provides a comprehensive environment for writing, organizing, and archiving your literary works and notes with multiple collections, powerful theming, and intuitive keyboard navigation.
 
