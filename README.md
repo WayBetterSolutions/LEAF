@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/LEAF.svg" alt="LEAF Logo" width="128" height="128">
+</p>
+
 # LEAF Notes
 ## Literature Environment & Archival Framework
 
@@ -152,13 +156,16 @@ Switch between them instantly with `Ctrl+T` or `Ctrl+Shift+T`.
 
 ## File Structure
 
-- `collections/` - Contains your note collections as JSON files
-- `config.json` - Application settings and preferences
-- `collections.json` - Collection metadata
+- `data/collections/` - Contains your note collections as JSON files
+- `config/config.json` - Application settings and preferences
+- `data/collections.json` - Collection metadata
+- `assets/` - Image assets and logo files
+- `qml/` - QML user interface files
+- `main.py` - Main application entry point
 
 ## Configuration
 
-LEAF stores all settings in `config.json` and collection data in `collections.json`. These files are automatically created and can be customized.
+LEAF stores all settings in `config/config.json` and collection data in `data/collections.json`. These files are automatically created and can be customized.
 
 ### config.json Settings
 
