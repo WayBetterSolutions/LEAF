@@ -1,4 +1,6 @@
+# Python
 venv/
+build_env/
 __pycache__/
 *.pyc
 *.pyo
@@ -8,7 +10,34 @@ env/
 ENV/
 .env
 .venv
+
+# Build artifacts
+build/
+dist/
+*.deb
+*.dmg
+*.msi
+*.exe
+*.app/
+
+# Development
 .claude
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Packaging
+*.egg-info/
+.eggs/
+deb_dist/
+
 # User data (exclude from git)
 data/
 config/
+
+# OS files
+.DS_Store
+Thumbs.db
+*.log

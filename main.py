@@ -2178,7 +2178,15 @@ def main():
     notes_manager = NotesManager()
     
     engine.rootContext().setContextProperty("notesManager", notes_manager)
-    engine.load(QUrl.fromLocalFile("qml/main.qml"))
+    # Determine QML path for both development and bundled environments
+    if getattr(sys, 'frozen', False):
+        # Running as bundled executable
+        qml_path = os.path.join(sys._MEIPASS, 'qml', 'main.qml')
+    else:
+        # Running as script
+        qml_path = "qml/main.qml"
+    
+    engine.load(QUrl.fromLocalFile(qml_path))
     
     if not engine.rootObjects():
         return -1
