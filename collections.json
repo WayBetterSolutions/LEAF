@@ -1,0 +1,13 @@
+{
+  "collections": [
+    "collection"
+  ],
+  "currentCollection": "collection",
+  "collectionSettings": {
+    "collection": {
+      "cardWidth": 2520,
+      "cardHeight": 400,
+      "preferredColumns": 1
+    }
+  }
+}
