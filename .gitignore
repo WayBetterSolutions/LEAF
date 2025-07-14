@@ -9,6 +9,7 @@ ENV/
 .env
 .venv
 .claude
+run.sh
 # User data (exclude from git)
 data/
 config/
