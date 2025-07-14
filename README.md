@@ -9,7 +9,7 @@
 A novel and userfreindly keyboard-driven note-taking application designed for writers-- especially those wanting a simple distraction free space. Built with Python and Qt, L.E.A.F. integrates seamlessly with writer deck workflows, producing lightning-fast note capture, flexible organization and extensive customization.
 
 **Key Features:**
-- **Keyboard-First Design** - Navigate, edit, and organize with 80+ shortcuts
+- **Keyboard-First Design** - Navigate, edit, and organize with shortcuts
 - **Collection-Based Organization** - Separate projects into distinct notebooks
 - **Literary Analytics** - Word counts, reading time, dialogue detection, and vocabulary analysis
 - **Advanced Theming** - 13 built-in themes plus visual theme editor
