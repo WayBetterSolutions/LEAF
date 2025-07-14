@@ -198,10 +198,10 @@ ApplicationWindow {
     // Notification system - Monochromatic with darker text
     Rectangle {
         id: notification
-        anchors.top: parent.top
+        anchors.bottom: parent.bottom
         anchors.horizontalCenter: parent.horizontalCenter
-        anchors.topMargin: appState.modal === "search" ? 70 : 10
-        width: Math.min(parent.width * 0.8, 600)
+        anchors.bottomMargin: 20
+        width: Math.min(Math.max(notificationText.contentWidth + 40, 350), parent.width * 0.9)
         height: 50
         radius: 8
         visible: false
@@ -225,23 +225,28 @@ ApplicationWindow {
 
         Text {
             anchors.centerIn: parent
+            anchors.margins: 10
             id: notificationText
             color: Qt.darker(notification.color, 1.8)  // Same color but darker
             font.family: notesManager.config.fontFamily
             font.pixelSize: 18
             font.bold: true
+            wrapMode: Text.NoWrap
+            elide: Text.ElideRight
+            maximumLineCount: 1
+            width: Math.min(implicitWidth, parent.width * 0.9 - 40)
         }
 
         Timer {
             id: notificationTimer
-            interval: 500
+            interval: 2000
             onTriggered: notification.visible = false
         }
 
         function show(message, msgType = "info") {
             notificationText.text = message
             type = msgType
-            //visible = true
+            visible = true
             notificationTimer.restart()
         }
 
@@ -396,7 +401,10 @@ ApplicationWindow {
             colors.setTheme(nextTheme)
             notesManager.setTheme(nextTheme)
             
-            notification.show("Theme changed to " + colors.getCurrentThemeName(), "success")
+            // Only show notification if theme dialog is not open
+            if (appState.modal !== "themes") {
+                notification.show("Theme: " + colors.getCurrentThemeName(), "success")
+            }
         }
     }
 
@@ -421,14 +429,20 @@ ApplicationWindow {
         sequence: notesManager.config.shortcuts.fontCycle
         onActivated: {
             notesManager.cycleFontForward()
-            notification.show("Font changed to " + notesManager.getCurrentFont(), "success")
+            // Only show notification if font dialog is not open
+            if (appState.modal !== "fonts") {
+                notification.show("Font: " + notesManager.getCurrentFont(), "success")
+            }
         }
     }
     Shortcut {
         sequence: notesManager.config.shortcuts.fontCycleBackward
         onActivated: {
             notesManager.cycleFontBackward()
-            notification.show("Font changed to " + notesManager.getCurrentFont(), "success")
+            // Only show notification if font dialog is not open
+            if (appState.modal !== "fonts") {
+                notification.show("Font: " + notesManager.getCurrentFont(), "success")
+            }
         }
     }
     Shortcut {
@@ -517,7 +531,6 @@ ApplicationWindow {
                 } else {
                     notesManager.switchCollection(collections[nextIndex])
                 }
-                notification.show("Switched to: " + collections[nextIndex], "success")
             }
         }
     }
@@ -539,7 +552,6 @@ ApplicationWindow {
                 } else {
                     notesManager.switchCollection(collections[prevIndex])
                 }
-                notification.show("Switched to: " + collections[prevIndex], "success")
             }
         }
     }
@@ -1754,7 +1766,7 @@ ApplicationWindow {
             // Header
             Text {
                 text: "Keyboard Shortcuts"
-                font.family: notesManager.config.fontFamily
+                // Use system default font for maximum legibility
                 font.pixelSize: 24
                 font.bold: true
                 color: colors.helpDialogText
@@ -1777,7 +1789,7 @@ ApplicationWindow {
                     // ===== BASIC ACTIONS =====
                     Text {
                         text: "Basic Actions"
-                        font.family: notesManager.config.fontFamily
+                        // Use system default font for help menu legibility
                         font.pixelSize: 16
                         font.bold: true
                         color: colors.accentColor
@@ -1789,44 +1801,50 @@ ApplicationWindow {
                     HelpItem { 
                         label: "New Note" 
                         shortcut: notesManager.config.shortcuts.newNote 
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     HelpItem { 
                         label: "Save Note" 
                         shortcut: notesManager.config.shortcuts.save 
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     HelpItem { 
                         label: "Search Notes" 
                         shortcut: notesManager.config.shortcuts.search 
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     HelpItem { 
                         label: "Back/Cancel" 
                         shortcut: notesManager.config.shortcuts.back 
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     HelpItem { 
                         label: "Help" 
                         shortcut: notesManager.config.shortcuts.help 
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        width: parent.width; itemHeight: 20; fontSize: 13
+                        colors: helpDialog.helpColors
+                    }
+                    HelpItem { 
+                        label: "Show Statistics" 
+                        shortcut: notesManager.config.shortcuts.showStats 
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     HelpItem { 
                         label: "Quit Application" 
                         shortcut: notesManager.config.shortcuts.quit 
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
 
                     // ===== COLLECTIONS =====
                     Text {
                         text: "Collections"
-                        font.family: notesManager.config.fontFamily
+                        // Use system default font for help menu legibility
                         font.pixelSize: 16
                         font.bold: true
                         color: colors.accentColor
@@ -1838,38 +1856,38 @@ ApplicationWindow {
                     HelpItem { 
                         label: "New Collection" 
                         shortcut: notesManager.config.shortcuts.newCollection 
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     HelpItem { 
                         label: "Rename Collection" 
                         shortcut: notesManager.config.shortcuts.renameCollection 
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     HelpItem { 
                         label: "Next Collection" 
                         shortcut: notesManager.config.shortcuts.nextCollection 
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     HelpItem { 
                         label: "Previous Collection" 
                         shortcut: notesManager.config.shortcuts.prevCollection 
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     HelpItem { 
                         label: "Delete Collection" 
                         shortcut: notesManager.config.shortcuts.deleteCollection 
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     
                     // ===== NAVIGATION =====
                     Text {
                         text: "Navigation"
-                        font.family: notesManager.config.fontFamily
+                        // Use system default font for help menu legibility
                         font.pixelSize: 16
                         font.bold: true
                         color: colors.accentColor
@@ -1880,61 +1898,51 @@ ApplicationWindow {
                     
                     HelpItem { 
                         label: "Navigate Up" 
-                        shortcut: Array.isArray(notesManager.config.shortcuts.prevNote) ? 
-                                  notesManager.config.shortcuts.prevNote.join(" or ") : 
-                                  notesManager.config.shortcuts.prevNote
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        shortcut: "↑ | K"
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     HelpItem { 
                         label: "Navigate Down" 
-                        shortcut: Array.isArray(notesManager.config.shortcuts.nextNote) ? 
-                                  notesManager.config.shortcuts.nextNote.join(" or ") : 
-                                  notesManager.config.shortcuts.nextNote
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        shortcut: "↓ | J"
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     HelpItem { 
                         label: "Navigate Left" 
-                        shortcut: Array.isArray(notesManager.config.shortcuts.prevNoteHorizontal) ? 
-                                  notesManager.config.shortcuts.prevNoteHorizontal.join(" or ") : 
-                                  notesManager.config.shortcuts.prevNoteHorizontal
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        shortcut: "← | H"
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     HelpItem { 
                         label: "Navigate Right" 
-                        shortcut: Array.isArray(notesManager.config.shortcuts.nextNoteHorizontal) ? 
-                                  notesManager.config.shortcuts.nextNoteHorizontal.join(" or ") : 
-                                  notesManager.config.shortcuts.nextNoteHorizontal
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        shortcut: "→ | L"
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     HelpItem { 
                         label: "Open Note" 
-                        shortcut: Array.isArray(notesManager.config.shortcuts.openNote) ? 
-                                  notesManager.config.shortcuts.openNote.join(" or ") : 
-                                  notesManager.config.shortcuts.openNote
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        shortcut: "Enter | Space"
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     HelpItem { 
                         label: "First Note" 
                         shortcut: notesManager.config.shortcuts.firstNote 
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     HelpItem { 
                         label: "Last Note" 
                         shortcut: notesManager.config.shortcuts.lastNote 
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     
                     // ===== NOTE ACTIONS =====
                     Text {
                         text: "Note Actions"
-                        font.family: notesManager.config.fontFamily
+                        // Use system default font for help menu legibility
                         font.pixelSize: 16
                         font.bold: true
                         color: colors.accentColor
@@ -1946,20 +1954,20 @@ ApplicationWindow {
                     HelpItem { 
                         label: "Delete Note (Grid)" 
                         shortcut: notesManager.config.shortcuts.delete 
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     HelpItem { 
                         label: "Quick Delete (Editor)" 
                         shortcut: notesManager.config.shortcuts.quickDelete 
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     
                     // ===== THEMES =====
                     Text {
                         text: "Themes"
-                        font.family: notesManager.config.fontFamily
+                        // Use system default font for help menu legibility
                         font.pixelSize: 16
                         font.bold: true
                         color: colors.accentColor
@@ -1971,26 +1979,26 @@ ApplicationWindow {
                     HelpItem { 
                         label: "Cycle Theme" 
                         shortcut: notesManager.config.shortcuts.themeCycle 
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     HelpItem { 
                         label: "Select Theme" 
                         shortcut: notesManager.config.shortcuts.themeCycleBackward 
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     HelpItem { 
                         label: "Edit Theme" 
                         shortcut: "Ctrl+Shift+E"
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     
                     // ===== FONTS =====
                     Text {
                         text: "Fonts"
-                        font.family: notesManager.config.fontFamily
+                        // Use system default font for help menu legibility
                         font.pixelSize: 16
                         font.bold: true
                         color: colors.accentColor
@@ -2002,26 +2010,26 @@ ApplicationWindow {
                     HelpItem { 
                         label: "Cycle Font Forward" 
                         shortcut: notesManager.config.shortcuts.fontCycle 
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     HelpItem { 
                         label: "Cycle Font Backward" 
                         shortcut: notesManager.config.shortcuts.fontCycleBackward 
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     HelpItem { 
                         label: "Select Font" 
                         shortcut: notesManager.config.shortcuts.fontSelection 
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     
                     // ===== DISPLAY & LAYOUT =====
                     Text {
                         text: "Display & Layout"
-                        font.family: notesManager.config.fontFamily
+                        // Use system default font for help menu legibility
                         font.pixelSize: 16
                         font.bold: true
                         color: colors.accentColor
@@ -2033,32 +2041,32 @@ ApplicationWindow {
                     HelpItem { 
                         label: "Toggle Fullscreen" 
                         shortcut: notesManager.config.shortcuts.toggleFullscreen 
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     HelpItem { 
                         label: "Auto-Optimize Layout" 
                         shortcut: notesManager.config.shortcuts.optimizeCardWidth 
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     HelpItem { 
                         label: "More Columns (Narrower)" 
                         shortcut: notesManager.config.shortcuts.increaseColumns 
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     HelpItem { 
                         label: "Fewer Columns (Wider)" 
                         shortcut: notesManager.config.shortcuts.decreaseColumns 
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     
                     // ===== FONT SIZES =====
                     Text {
                         text: "Font Sizes"
-                        font.family: notesManager.config.fontFamily
+                        // Use system default font for help menu legibility
                         font.pixelSize: 16
                         font.bold: true
                         color: colors.accentColor
@@ -2068,46 +2076,46 @@ ApplicationWindow {
                     }
                     
                     HelpItem { 
-                        label: "Increase Editor Font" 
+                        label: "Increase Editor Font Size" 
                         shortcut: notesManager.config.shortcuts.increaseFontSize 
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     HelpItem { 
-                        label: "Decrease Editor Font" 
+                        label: "Decrease Editor Font Size" 
                         shortcut: notesManager.config.shortcuts.decreaseFontSize 
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     HelpItem { 
-                        label: "Increase Card Font" 
+                        label: "Increase Card Content Font" 
                         shortcut: notesManager.config.shortcuts.increaseCardFontSize 
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     HelpItem { 
-                        label: "Decrease Card Font" 
+                        label: "Decrease Card Content Font" 
                         shortcut: notesManager.config.shortcuts.decreaseCardFontSize
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     HelpItem { 
                         label: "Increase Card Title Font" 
                         shortcut: notesManager.config.shortcuts.increaseCardTitleFontSize 
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     HelpItem { 
                         label: "Decrease Card Title Font" 
                         shortcut: notesManager.config.shortcuts.decreaseCardTitleFontSize
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     
                     // ===== CARD DIMENSIONS =====
                     Text {
                         text: "Card Dimensions"
-                        font.family: notesManager.config.fontFamily
+                        // Use system default font for help menu legibility
                         font.pixelSize: 16
                         font.bold: true
                         color: colors.accentColor
@@ -2119,20 +2127,20 @@ ApplicationWindow {
                     HelpItem { 
                         label: "Taller Cards" 
                         shortcut: notesManager.config.shortcuts.increaseCardHeight
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     HelpItem { 
                         label: "Shorter Cards" 
                         shortcut: notesManager.config.shortcuts.decreaseCardHeight
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     
                     // ===== DELETION CONFIRMATIONS =====
                     Text {
                         text: "Delete Confirmations"
-                        font.family: notesManager.config.fontFamily
+                        // Use system default font for help menu legibility
                         font.pixelSize: 16
                         font.bold: true
                         color: colors.accentColor
@@ -2143,25 +2151,21 @@ ApplicationWindow {
                     
                     HelpItem { 
                         label: "Confirm Delete" 
-                        shortcut: Array.isArray(notesManager.config.shortcuts.confirmDelete) ? 
-                                  notesManager.config.shortcuts.confirmDelete.join(" or ") : 
-                                  notesManager.config.shortcuts.confirmDelete
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        shortcut: "Y | Enter"
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     HelpItem { 
                         label: "Cancel Delete" 
-                        shortcut: Array.isArray(notesManager.config.shortcuts.cancelDelete) ? 
-                                  notesManager.config.shortcuts.cancelDelete.join(" or ") : 
-                                  notesManager.config.shortcuts.cancelDelete
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        shortcut: "N | Escape"
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     
                     // ===== DIALOG NAVIGATION =====
                     Text {
                         text: "Dialog Navigation"
-                        font.family: notesManager.config.fontFamily
+                        // Use system default font for help menu legibility
                         font.pixelSize: 16
                         font.bold: true
                         color: colors.accentColor
@@ -2172,26 +2176,26 @@ ApplicationWindow {
                     
                     HelpItem { 
                         label: "Scroll Up" 
-                        shortcut: "Up, K, or Page Up" 
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        shortcut: "↑ | K | Page Up" 
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     HelpItem { 
                         label: "Scroll Down" 
-                        shortcut: "Down, J, or Page Down" 
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        shortcut: "↓ | J | Page Down" 
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     HelpItem { 
                         label: "Go to Top" 
                         shortcut: "Home" 
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     HelpItem { 
                         label: "Go to Bottom" 
                         shortcut: "End" 
-                        width: parent.width; itemHeight: 18; fontSize: 11
+                        width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
                     
@@ -3435,7 +3439,6 @@ ApplicationWindow {
                                                         } else {
                                                             notesManager.switchCollection(modelData)
                                                         }
-                                                        notification.show("Switched to: " + modelData, "success")
                                                     }
                                                 }
                                             }

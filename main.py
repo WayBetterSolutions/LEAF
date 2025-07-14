@@ -185,8 +185,8 @@ class NotesManager(QAbstractListModel):
         self._load_font_cache_from_disk()
         
         # Start background font loading during app startup if no cache
-        if self._font_cache is None:
-            self.preloadFonts()
+        # if self._font_cache is None:
+        #     self.preloadFonts()
 
         # Handle first-time setup or load existing collections
         if self._needs_first_collection_setup():
@@ -400,9 +400,6 @@ class NotesManager(QAbstractListModel):
                 "cancelDelete": ["N", "Escape"],
                 "quickDelete": "Ctrl+D",
                 "search": "Ctrl+F",
-                "searchNext": "F3",
-                "searchPrev": "Shift+F3",
-                "toggleView": "Tab",
                 "nextNote": ["Down", "J"],
                 "prevNote": ["Up", "K"],
                 "nextNoteHorizontal": ["Right", "L"],
@@ -410,15 +407,6 @@ class NotesManager(QAbstractListModel):
                 "openNote": ["Return", "Space"],
                 "firstNote": "Home",
                 "lastNote": "End",
-                "pageUp": "Page_Up",
-                "pageDown": "Page_Down",
-                "selectAll": "Ctrl+A",
-                "copy": "Ctrl+C",
-                "cut": "Ctrl+X",
-                "paste": "Ctrl+V",
-                "undo": "Ctrl+Z",
-                "redo": "Ctrl+Y",
-                "find": "Ctrl+F",
                 "quit": "Ctrl+Q",
                 "help": "F1",
                 "toggleFullscreen": "Ctrl+W",
