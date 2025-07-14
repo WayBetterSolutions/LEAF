@@ -6,7 +6,7 @@
 
 **Literature Environment & Archival Framework**
 
-A sophisticated keyboard-driven note-taking application designed for writers and literary work. Built with Python and Qt, LEAF integrates seamlessly with writers deck workflows while providing lightning-fast note capture, flexible organization through collections, and extensive customization.
+A novel and userfreindly keyboard-driven note-taking application designed for writers-- especially those wanting a simple distraction free space. Built with Python and Qt, L.E.A.F. integrates seamlessly with writers deck workflows, producing lightning-fast note capture, flexible organization and extensive customization.
 
 **Key Features:**
 - **Keyboard-First Design** - Navigate, edit, and organize with 80+ shortcuts
