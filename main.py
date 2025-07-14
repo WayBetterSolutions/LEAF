@@ -353,7 +353,7 @@ class NotesManager(QAbstractListModel):
                 "back": "Escape", 
                 "delete": "Delete",
                 "confirmDelete": ["Y", "Return"],
-                "cancelDelete": ["N", "Escape"],
+                "cancelDelete": ["N"],
                 "quickDelete": "Ctrl+D",
                 "search": "Ctrl+F",
                 "nextNote": ["Down", "J"],

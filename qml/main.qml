@@ -348,7 +348,6 @@ ApplicationWindow {
         enabled: appState.isEditing() && currentNoteId >= 0 && !appState.hasModal()
         onActivated: {
             appState.modal = "delete"
-            window.forceActiveFocus()
         }
     }
     
@@ -365,9 +364,6 @@ ApplicationWindow {
         enabled: appState.modal === "delete"
         onActivated: {
             appState.modal = "none"
-            if (appState.isEditing()) {
-                timerManager.scheduleFocus(contentArea)
-            }
         }
     }
 
@@ -617,11 +613,6 @@ ApplicationWindow {
             if (appState.modal === "firstTimeSetup") {
                 // Cannot escape first-time setup
                 return
-            } else if (appState.modal === "delete") {
-                appState.modal = "none"
-                if (appState.isEditing()) {
-                    timerManager.scheduleFocus(contentArea)
-                }
             } else if (appState.modal === "help") {
                 appState.modal = "none"
             } else if (appState.modal === "themes") {
@@ -633,8 +624,6 @@ ApplicationWindow {
             } else if (appState.modal === "newCollection") {
                 appState.modal = "none"
             } else if (appState.modal === "renameCollection") {
-                appState.modal = "none"
-            } else if (appState.modal === "deleteCollection") {
                 appState.modal = "none"
             } else if (appState.modal === "stats") {
                 appState.modal = "none"
@@ -1295,7 +1284,7 @@ ApplicationWindow {
 
                     contentItem: Text {
                         text: parent.text
-                        color: Qt.darker(parent.background.color, 1.8)  // Darker version of background
+                        color: colors.secondaryText
                         font.family: notesManager.config.fontFamily
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
@@ -1434,7 +1423,7 @@ ApplicationWindow {
                     
                     contentItem: Text {
                         text: parent.text
-                        color: colors.textColor
+                        color: colors.secondaryText
                         font.family: notesManager.config.fontFamily
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
@@ -1473,6 +1462,23 @@ ApplicationWindow {
         visible: appState.modal === "deleteCollection"
         z: 201
         focus: appState.modal === "deleteCollection"
+        
+        Keys.onPressed: function(event) {
+            if (event.key === Qt.Key_Y || event.key === Qt.Key_Return) {
+                event.accepted = true
+                if (notesManager.collections.length > 1) {
+                    if (notesManager.deleteCollection(notesManager.currentCollection)) {
+                        // Removed notification for collection deletion
+                        appState.modal = "none"
+                    } else {
+                        // Removed notification for collection deletion error
+                    }
+                }
+            } else if (event.key === Qt.Key_N) {
+                event.accepted = true
+                appState.modal = "none"
+            }
+        }
         
         Column {
             anchors.centerIn: parent
@@ -1530,7 +1536,7 @@ ApplicationWindow {
                 }
 
                 Button {
-                    text: "Cancel (N/Esc)"
+                    text: "Cancel (N)"
                     onClicked: {
                         appState.modal = "none"
                     }
@@ -1544,7 +1550,7 @@ ApplicationWindow {
 
                     contentItem: Text {
                         text: parent.text
-                        color: colors.textColor
+                        color: colors.secondaryText
                         font.family: notesManager.config.fontFamily
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
@@ -1721,6 +1727,19 @@ ApplicationWindow {
         z: 201
         focus: appState.modal === "delete"
         
+        Keys.onPressed: function(event) {
+            if (event.key === Qt.Key_Y || event.key === Qt.Key_Return) {
+                event.accepted = true
+                confirmDelete()
+            } else if (event.key === Qt.Key_N) {
+                event.accepted = true
+                appState.modal = "none"
+                if (appState.isEditing()) {
+                    timerManager.scheduleFocus(contentArea)
+                }
+            }
+        }
+        
         Column {
             anchors.centerIn: parent
             spacing: 20
@@ -1768,7 +1787,7 @@ ApplicationWindow {
 
                 // No/Cancel button
                 Button {
-                    text: "No (N/Esc)"
+                    text: "No (N)"
                     onClicked: {
                         appState.modal = "none"
                         if (appState.isEditing()) {
@@ -1785,7 +1804,7 @@ ApplicationWindow {
 
                     contentItem: Text {
                         text: parent.text
-                        color: Qt.darker(parent.background.color, 1.8)  // Darker version of background
+                        color: colors.secondaryText
                         font.family: notesManager.config.fontFamily
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
@@ -1922,7 +1941,7 @@ ApplicationWindow {
 
                     contentItem: Text {
                         text: parent.text
-                        color: Qt.darker(parent.background.color, 1.8)
+                        color: colors.secondaryText
                         font.family: notesManager.config.fontFamily
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
@@ -2026,6 +2045,12 @@ ApplicationWindow {
                     HelpItem { 
                         label: "Save Note" 
                         shortcut: notesManager.config.shortcuts.save 
+                        width: parent.width; itemHeight: 20; fontSize: 13
+                        colors: helpDialog.helpColors
+                    }
+                    HelpItem { 
+                        label: "Toggle Auto-save" 
+                        shortcut: notesManager.config.shortcuts.toggleAutoSave 
                         width: parent.width; itemHeight: 20; fontSize: 13
                         colors: helpDialog.helpColors
                     }
@@ -3950,7 +3975,7 @@ ApplicationWindow {
 
                             contentItem: Text {
                                 text: parent.text
-                                color: Qt.darker(parent.background.color, 1.8)  // Darker version of background
+                                color: colors.secondaryText
                                 font.family: notesManager.config.fontFamily
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
@@ -4065,7 +4090,6 @@ ApplicationWindow {
                                 if (event.key === Qt.Key_D && (event.modifiers & Qt.ControlModifier)) {
                                     event.accepted = true
                                     appState.modal = "delete"
-                                    window.forceActiveFocus()
                                 }
                             }
                             
