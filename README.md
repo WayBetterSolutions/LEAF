@@ -35,7 +35,7 @@ A clean, fast, and customizable note-taking application built with Python and Qt
 
 2. **Create a virtual environment**
    ```bash
-   python -m venv venv
+   python3 -m venv venv
    ```
 
 3. **Activate the virtual environment**
@@ -65,8 +65,9 @@ A clean, fast, and customizable note-taking application built with Python and Qt
 1. **First Launch**: You'll be prompted to create your first collection
 2. **Create Notes**: Press `Ctrl+N` to create a new note
 3. **Navigate**: Use arrow keys or vim keys (`h`, `j`, `k`, `l`) to navigate
-4. **Search**: Press `Ctrl+F` to search your notes
+4. **Search**: Press `Ctrl+F` to search
 5. **Switch Themes**: Press `Ctrl+T` to cycle through themes
+6. **Fonts**: Press `Ctrl+Shift+F` to change fonts
 
 ## Keyboard Shortcuts
 

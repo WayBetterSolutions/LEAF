@@ -185,10 +185,10 @@ ApplicationWindow {
     Connections {
         target: notesManager
         function onSaveError(message) {
-            notification.show(message, "error")
+            // Removed notification for save errors
         }
         function onLoadError(message) {
-            notification.show(message, "error")
+            // Removed notification for load errors
         }
         function onSaveSuccess() {
             // Silent success - only show errors
@@ -201,7 +201,7 @@ ApplicationWindow {
         anchors.bottom: parent.bottom
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottomMargin: 20
-        width: Math.min(Math.max(notificationText.contentWidth + 40, 350), parent.width * 0.9)
+        width: Math.min(Math.max(350, parent.width * 0.5), parent.width * 0.9)
         height: 50
         radius: 8
         visible: false
@@ -229,12 +229,12 @@ ApplicationWindow {
             id: notificationText
             color: Qt.darker(notification.color, 1.8)  // Same color but darker
             font.family: notesManager.config.fontFamily
-            font.pixelSize: 18
+            font.pixelSize: Math.min(18, Math.max(12, (parent.width - 40) / (text.length * 0.6)))
             font.bold: true
             wrapMode: Text.NoWrap
-            elide: Text.ElideRight
+            elide: Text.ElideNone
             maximumLineCount: 1
-            width: Math.min(implicitWidth, parent.width * 0.9 - 40)
+            width: parent.width - 40
         }
 
         Timer {
@@ -368,10 +368,10 @@ ApplicationWindow {
         enabled: appState.modal === "deleteCollection"
         onActivated: {
             if (notesManager.deleteCollection(notesManager.currentCollection)) {
-                notification.show("Collection deleted", "success")
+                // Removed notification for collection deletion
                 appState.modal = "none"
             } else {
-                notification.show("Cannot delete the last collection", "error")
+                // Removed notification for collection deletion error
             }
         }
     }
@@ -401,8 +401,11 @@ ApplicationWindow {
             colors.setTheme(nextTheme)
             notesManager.setTheme(nextTheme)
             
-            // Only show notification if theme dialog is not open
-            if (appState.modal !== "themes") {
+            // If theme dialog is open, update selection and scroll
+            if (appState.modal === "themes") {
+                themeDialog.updateSelectedIndex()
+                themeDialog.scrollToSelected()
+            } else {
                 notification.show("Theme: " + colors.getCurrentThemeName(), "success")
             }
         }
@@ -429,8 +432,11 @@ ApplicationWindow {
         sequence: notesManager.config.shortcuts.fontCycle
         onActivated: {
             notesManager.cycleFontForward()
-            // Only show notification if font dialog is not open
-            if (appState.modal !== "fonts") {
+            // If font dialog is open, update selection and scroll
+            if (appState.modal === "fonts") {
+                fontDialog.updateSelectedIndex()
+                fontDialog.scrollToSelected()
+            } else {
                 notification.show("Font: " + notesManager.getCurrentFont(), "success")
             }
         }
@@ -439,8 +445,11 @@ ApplicationWindow {
         sequence: notesManager.config.shortcuts.fontCycleBackward
         onActivated: {
             notesManager.cycleFontBackward()
-            // Only show notification if font dialog is not open
-            if (appState.modal !== "fonts") {
+            // If font dialog is open, update selection and scroll
+            if (appState.modal === "fonts") {
+                fontDialog.updateSelectedIndex()
+                fontDialog.scrollToSelected()
+            } else {
                 notification.show("Font: " + notesManager.getCurrentFont(), "success")
             }
         }
@@ -462,7 +471,7 @@ ApplicationWindow {
                     gridViewRef.width,
                     gridViewRef.leftMargin
                 )
-                notification.show("Card width optimized to fill window", "success")
+                // Removed notification for card width optimization
             }
         }
     }
@@ -477,9 +486,9 @@ ApplicationWindow {
                     gridViewRef.leftMargin
                 )
                 if (success) {
-                    notification.show("More columns", "success")
+                    // Removed notification for column changes
                 } else {
-                    notification.show("Maximum columns reached - all notes in one row", "error")
+                    // Removed notification for column changes
                 }
             }
         }
@@ -495,9 +504,9 @@ ApplicationWindow {
                     gridViewRef.leftMargin
                 )
                 if (success) {
-                    notification.show("Fewer columns", "success")
+                    // Removed notification for column changes
                 } else {
-                    notification.show("Already at minimum (1 column)", "error")
+                    // Removed notification for column changes
                 }
             }
         }
@@ -929,9 +938,9 @@ ApplicationWindow {
                             if (notesManager.setupFirstCollection(text)) {
                                 showingFirstTimeSetup = false
                                 appState.modal = "none"
-                                notification.show("Collection '" + text + "' created! Welcome to LEAF!", "success")
+                                // Removed notification for first collection setup
                             } else {
-                                notification.show("Could not create collection. Please try again.", "error")
+                                // Removed notification for first collection setup error
                             }
                         }
                     }
@@ -951,9 +960,9 @@ ApplicationWindow {
                             if (notesManager.setupFirstCollection(firstCollectionField.text)) {
                                 showingFirstTimeSetup = false
                                 appState.modal = "none"
-                                notification.show("Collection '" + firstCollectionField.text + "' created! Welcome to LEAF!", "success")
+                                // Removed notification for first collection setup
                             } else {
-                                notification.show("Could not create collection. Please try again.", "error")
+                                // Removed notification for first collection setup error
                             }
                         }
                     }
@@ -1146,12 +1155,12 @@ ApplicationWindow {
                 onAccepted: {
                     if (text.trim() !== "") {
                         if (notesManager.createCollection(text)) {
-                            notification.show("Collection '" + text + "' created", "success")
+                            // Removed notification for collection creation
                             notesManager.switchCollection(text)
                             appState.modal = "none"
                             text = ""
                         } else {
-                            notification.show("Collection already exists or invalid name", "error")
+                            // Removed notification for collection creation error
                         }
                     }
                 }
@@ -1171,12 +1180,12 @@ ApplicationWindow {
                     onClicked: {
                         if (newCollectionField.text.trim() !== "") {
                             if (notesManager.createCollection(newCollectionField.text)) {
-                                notification.show("Collection '" + newCollectionField.text + "' created", "success")
+                                // Removed notification for collection creation
                                 notesManager.switchCollection(newCollectionField.text)
                                 appState.modal = "none"
                                 newCollectionField.text = ""
                             } else {
-                                notification.show("Collection already exists or invalid name", "error")
+                                // Removed notification for collection creation error
                             }
                         }
                     }
@@ -1292,10 +1301,10 @@ ApplicationWindow {
                 onAccepted: {
                     if (text.trim() !== "" && text.trim() !== notesManager.currentCollection) {
                         if (notesManager.renameCollection(notesManager.currentCollection, text)) {
-                            notification.show("Collection renamed to '" + text + "'", "success")
+                            // Removed notification for collection rename
                             appState.modal = "none"
                         } else {
-                            notification.show("Collection name already exists or invalid", "error")
+                            // Removed notification for collection rename error
                         }
                     }
                 }
@@ -1315,10 +1324,10 @@ ApplicationWindow {
                         if (renameCollectionField.text.trim() !== "" && 
                             renameCollectionField.text.trim() !== notesManager.currentCollection) {
                             if (notesManager.renameCollection(notesManager.currentCollection, renameCollectionField.text)) {
-                                notification.show("Collection renamed to '" + renameCollectionField.text + "'", "success")
+                                // Removed notification for collection rename
                                 appState.modal = "none"
                             } else {
-                                notification.show("Collection name already exists or invalid", "error")
+                                // Removed notification for collection rename error
                             }
                         }
                     }
@@ -1425,10 +1434,10 @@ ApplicationWindow {
                     enabled: notesManager.collections.length > 1
                     onClicked: {
                         if (notesManager.deleteCollection(notesManager.currentCollection)) {
-                            notification.show("Collection deleted", "success")
+                            // Removed notification for collection deletion
                             appState.modal = "none"
                         } else {
-                            notification.show("Cannot delete the last collection", "error")
+                            // Removed notification for collection deletion error
                         }
                     }
 
@@ -1510,10 +1519,10 @@ ApplicationWindow {
                     if (themeDialog.selectedThemeIndex >= themeDialog.availableThemes.length) {
                         themeDialog.selectedThemeIndex = themeDialog.availableThemes.length - 1
                     }
-                    notification.show("Theme deleted: " + themeDialog.themeToDelete.displayName, "success")
+                    // Removed notification for theme deletion
                     appState.modal = "themes"
                 } else {
-                    notification.show("Cannot delete current theme", "error")
+                    // Removed notification for theme deletion error
                     appState.modal = "themes"
                 }
             } else if (event.key === Qt.Key_N || event.key === Qt.Key_Escape) {
@@ -1570,10 +1579,10 @@ ApplicationWindow {
                                 if (themeDialog.selectedThemeIndex >= themeDialog.availableThemes.length) {
                                     themeDialog.selectedThemeIndex = themeDialog.availableThemes.length - 1
                                 }
-                                notification.show("Theme deleted: " + themeDialog.themeToDelete.displayName, "success")
+                                // Removed notification for theme deletion
                                 appState.modal = "themes"
                             } else {
-                                notification.show("Cannot delete current theme", "error")
+                                // Removed notification for theme deletion error
                                 appState.modal = "themes"
                             }
                         }
