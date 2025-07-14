@@ -23,69 +23,24 @@ class FontLoader(QThread):
     fontsLoaded = Signal(list)
     
     def run(self):
-        """Load fonts in background thread with aggressive filtering"""
+        """Load all fonts without filtering patterns"""
         try:
             font_db = QFontDatabase()
             families = font_db.families()
             
-            # MUCH more aggressive filtering for speed
-            priority_fonts = []
-            regular_fonts = []
-            
-            # Expanded priority patterns for common coding/UI fonts
-            priority_patterns = [
-                'victor', 'fira', 'jetbrains', 'iosevka', 'inconsolata', 'hack', 'cascadia',
-                'source code', 'ubuntu mono', 'roboto mono', 'consolas', 'courier', 'monaco', 'menlo',
-                'dejavu', 'liberation', 'noto', 'arial', 'helvetica', 'times', 'georgia'
-            ]
-            
-            # Aggressive skip patterns to reduce font count
-            skip_patterns = [
-                'symbol', 'wingdings', 'webdings', 'mt extra', 'marlett', 'dingbats', 
-                'emoji', 'emoticons', 'icon', 'zapf', 'dingbat', 'naskh', 'kacst',
-                'mathematica', 'stix', 'latex', 'cm-', 'lm roman', 'tex gyre',
-                'nimbus', 'urw', 'p052', 'z003', 'd050', 'c059', 'standard symbols'
-            ]
+            all_fonts = []
             
             for family in families:
-                # Quick filters first
-                if len(family) > 40:  # More aggressive length limit
-                    continue
-                    
                 family_lower = family.lower()
                 
-                # Skip vertical fonts and special encodings
+                # Only skip clearly problematic system fonts
                 if family_lower.startswith('@') or family_lower.startswith('.'):
                     continue
                 
-                # Skip fonts with numbers (usually system fonts)
-                if any(char.isdigit() for char in family[:10]):
-                    continue
-                    
-                # Skip problematic fonts
-                skip = False
-                for pattern in skip_patterns:
-                    if pattern in family_lower:
-                        skip = True
-                        break
-                        
-                if not skip:
-                    # Prioritize common programming fonts
-                    is_priority = any(pattern in family_lower for pattern in priority_patterns)
-                    
-                    if is_priority:
-                        priority_fonts.append(family)
-                    else:
-                        # Only include regular fonts with reasonable names
-                        if len(family) <= 25 and ' ' not in family[:3]:  # Avoid complex font names
-                            regular_fonts.append(family)
+                all_fonts.append(family)
             
-            # Sort and limit total fonts for performance
-            sorted_priority = sorted(priority_fonts)
-            sorted_regular = sorted(regular_fonts[:100])  # Limit regular fonts
-            
-            # Combine: priority fonts first, then limited regular fonts
-            all_fonts = sorted_priority + sorted_regular
+            # Sort alphabetically
+            all_fonts = sorted(all_fonts)
             
             self.fontsLoaded.emit(all_fonts)
             
