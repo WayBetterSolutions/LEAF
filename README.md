@@ -1,4 +1,4 @@
-# LEAF
+# <img src="assets/LEAFico.ico" width="32" height="32" alt="LEAF Icon"> LEAF
 
 **Literature Environment & Archival Framework**
 
