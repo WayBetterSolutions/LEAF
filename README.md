@@ -1,8 +1,21 @@
+<div align="center">
+  <img src="assets/LEAFico.ico" width="128" height="128" alt="LEAF Icon">
+</div>
+
 # <img src="assets/LEAFico.ico" width="32" height="32" alt="LEAF Icon"> LEAF
 
 **Literature Environment & Archival Framework**
 
-A fast note-taking application built with Python and Qt. Works with writers deck. Supports multiple collections, custom themes, and keyboard navigation.
+A sophisticated keyboard-driven note-taking application designed for writers and literary work. Built with Python and Qt, LEAF integrates seamlessly with writers deck workflows while providing lightning-fast note capture, flexible organization through collections, and extensive customization.
+
+**Key Features:**
+- **Keyboard-First Design** - Navigate, edit, and organize with 80+ shortcuts
+- **Collection-Based Organization** - Separate projects into distinct notebooks
+- **Literary Analytics** - Word counts, reading time, dialogue detection, and vocabulary analysis
+- **Advanced Theming** - 13 built-in themes plus visual theme editor
+- **Dual View System** - Card/grid browsing and distraction-free editing modes
+- **Real-time Search** - Instant filtering with regex support
+- **Cross-Platform** - Works on Windows, macOS, and Linux
 
 ## Installation
 
@@ -79,95 +92,6 @@ pip install PySide6 && python main.py
 
 ## Themes
 
-**13 Built-in Themes:**
+LEAF includes **13 carefully crafted themes** including Night Owl, Dracula, Monokai, GitHub Dark, Catppuccin, Tokyo Night, Nord Dark, Gruvbox Dark, One Dark, Material Dark, Ayu Dark, Forest, and Solarized Light. Each theme provides a complete color palette optimized for long writing sessions.
 
-### Night Owl
-- Background: `#011627`
-- Surface: `#1d3b53`
-- Primary: `#c792ea`
-- Text: `#d6deeb`
-- Accent: `#7fdbca`
-
-### Dracula
-- Background: `#282a36`
-- Surface: `#44475a`
-- Primary: `#bd93f9`
-- Text: `#f8f8f2`
-- Accent: `#6272a4`
-
-### Monokai
-- Background: `#272822`
-- Surface: `#3e3d32`
-- Primary: `#f92672`
-- Text: `#f8f8f2`
-- Accent: `#75715e`
-
-### GitHub Dark
-- Background: `#0d1117`
-- Surface: `#21262d`
-- Primary: `#58a6ff`
-- Text: `#f0f6fc`
-- Accent: `#7d8590`
-
-### Catppuccin
-- Background: `#1e1e2e`
-- Surface: `#313244`
-- Primary: `#cba6f7`
-- Text: `#cdd6f4`
-- Accent: `#f9e2af`
-
-### Tokyo Night
-- Background: `#1a1b26`
-- Surface: `#24283b`
-- Primary: `#7aa2f7`
-- Text: `#c0caf5`
-- Accent: `#9ece6a`
-
-### Nord Dark
-- Background: `#2e3440`
-- Surface: `#3b4252`
-- Primary: `#88c0d0`
-- Text: `#eceff4`
-- Accent: `#d08770`
-
-### Gruvbox Dark
-- Background: `#282828`
-- Surface: `#3c3836`
-- Primary: `#83a598`
-- Text: `#ebdbb2`
-- Accent: `#fe8019`
-
-### One Dark
-- Background: `#1e2127`
-- Surface: `#2c323c`
-- Primary: `#61afef`
-- Text: `#abb2bf`
-- Accent: `#e06c75`
-
-### Material Dark
-- Background: `#121212`
-- Surface: `#1e1e1e`
-- Primary: `#bb86fc`
-- Text: `#ffffff`
-- Accent: `#03dac6`
-
-### Ayu Dark
-- Background: `#0a0e14`
-- Surface: `#1f2430`
-- Primary: `#ffb454`
-- Text: `#b3b1ad`
-- Accent: `#e6b450`
-
-### Forest
-- Background: `#1a2319`
-- Surface: `#2d3b2c`
-- Primary: `#7ec699`
-- Text: `#e8f2e8`
-- Accent: `#a8c9a8`
-
-### Solarized Light
-- Background: `#fdf6e3`
-- Surface: `#eee8d5`
-- Primary: `#268bd2`
-- Text: `#586e75`
-- Accent: `#93a1a1`
+Use the built-in **visual theme editor** (`Ctrl+Shift+E`) to create and customize your own themes, or cycle through existing themes with `Ctrl+T`.
