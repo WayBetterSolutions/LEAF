@@ -90,6 +90,8 @@ ApplicationWindow {
     property int selectedNoteIndex: 0
     property int unsavedChanges: 0
     property bool navigating: false
+    property bool autoSaveEnabled: notesManager.config.autoSaveEnabled
+    property bool loadingContent: false
     property point lastCardPosition: Qt.point(0, 0)
     property var gridViewRef: null
     property bool isFullscreen: false
@@ -138,7 +140,7 @@ ApplicationWindow {
             interval: notesManager.config.autoSaveInterval
             repeat: false
             onTriggered: {
-                if (appState.isEditing() && currentNote.content !== undefined) {
+                if (autoSaveEnabled && appState.isEditing() && currentNote.content !== undefined) {
                     saveCurrentNote()
                     unsavedChanges = 0
                 }
@@ -193,6 +195,12 @@ ApplicationWindow {
         function onSaveSuccess() {
             // Silent success - only show errors
         }
+    }
+
+    // Autosave toggle shortcut
+    Shortcut {
+        sequence: notesManager.config.shortcuts.toggleAutoSave
+        onActivated: toggleAutoSave()
     }
 
     // Notification system - Monochromatic with darker text
@@ -360,6 +368,26 @@ ApplicationWindow {
             if (appState.isEditing()) {
                 timerManager.scheduleFocus(contentArea)
             }
+        }
+    }
+
+    // Shortcuts for unsaved changes modal
+    Shortcut {
+        sequence: "S"
+        enabled: appState.modal === "unsavedChanges"
+        onActivated: {
+            saveCurrentNote()
+            appState.modal = "none"
+            showGridView()
+        }
+    }
+    
+    Shortcut {
+        sequence: "D"
+        enabled: appState.modal === "unsavedChanges"
+        onActivated: {
+            appState.modal = "none"
+            showGridView()
         }
     }
 
@@ -612,9 +640,10 @@ ApplicationWindow {
                 appState.modal = "none"
             } else if (appState.modal === "search") {
                 exitSearchMode()
+            } else if (appState.modal === "unsavedChanges") {
+                appState.modal = "none"
             } else if (appState.isEditing()) {
-                saveCurrentNote()
-                showGridView()
+                handleBackNavigation()
             }
         }
     }
@@ -623,7 +652,7 @@ ApplicationWindow {
     Shortcut {
         sequence: notesManager.config.shortcuts.save
         enabled: appState.isEditing() && !appState.hasModal()
-        onActivated: saveCurrentNote()
+        onActivated: saveCurrentNote(true)
     }
     
     // Navigation helper shortcuts
@@ -789,14 +818,18 @@ ApplicationWindow {
             saveCurrentNote()
             showGridView()
             Qt.callLater(function() {
+                loadingContent = true
                 currentNoteId = -1
                 currentNote = { id: -1, title: "", content: "" }
                 showNoteEditor()
+                Qt.callLater(function() { loadingContent = false })
             })
         } else {
+            loadingContent = true
             currentNoteId = -1
             currentNote = { id: -1, title: "", content: "" }
             showNoteEditor()
+            Qt.callLater(function() { loadingContent = false })
         }
     }
 
@@ -815,12 +848,15 @@ ApplicationWindow {
     }
 
     function editNote(noteId) {
+        loadingContent = true
         currentNoteId = noteId
         currentNote = notesManager.getNote(noteId)
         showNoteEditor()
+        // Reset flag after a brief delay to allow text binding to complete
+        Qt.callLater(function() { loadingContent = false })
     }
 
-    function saveCurrentNote() {
+    function saveCurrentNote(showNotification = false) {
         if (currentNote.content !== undefined && currentNote.content.trim() !== "") {
             if (currentNoteId === -1) {
                 currentNoteId = notesManager.createNote(currentNote.content)
@@ -828,6 +864,43 @@ ApplicationWindow {
                 notesManager.updateNote(currentNoteId, currentNote.content)
             }
             unsavedChanges = 0
+            
+            if (showNotification) {
+                notification.show("Note saved", "success")
+            }
+        }
+    }
+
+    function toggleAutoSave() {
+        autoSaveEnabled = !autoSaveEnabled
+        
+        // Save the setting to configuration
+        notesManager.setAutoSaveEnabled(autoSaveEnabled)
+        
+        var message = autoSaveEnabled ? "Auto-save enabled" : "Auto-save disabled"
+        notification.show(message, "info")
+        
+        // If auto-save is being enabled and there are unsaved changes, save now
+        if (autoSaveEnabled && unsavedChanges > 0 && appState.isEditing() && currentNote.content !== undefined) {
+            autoSaveTimer.restart()
+        }
+        
+        // If auto-save is being disabled, stop the timer
+        if (!autoSaveEnabled) {
+            autoSaveTimer.stop()
+        }
+    }
+
+    function handleBackNavigation() {
+        // If autosave is enabled or no unsaved changes, navigate immediately
+        if (autoSaveEnabled || unsavedChanges === 0) {
+            if (autoSaveEnabled) {
+                saveCurrentNote()
+            }
+            showGridView()
+        } else {
+            // Show confirmation dialog for unsaved changes
+            appState.modal = "unsavedChanges"
         }
     }
 
@@ -1713,6 +1786,143 @@ ApplicationWindow {
                     contentItem: Text {
                         text: parent.text
                         color: Qt.darker(parent.background.color, 1.8)  // Darker version of background
+                        font.family: notesManager.config.fontFamily
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                }
+            }
+        }
+    }
+
+    // Unsaved changes overlay
+    Rectangle {
+        anchors.fill: parent
+        color: colors.overlayColor
+        opacity: appState.modal === "unsavedChanges" ? 0.7 : 0
+        visible: appState.modal === "unsavedChanges"
+        z: 200
+        
+        Behavior on opacity {
+            NumberAnimation { duration: 150 }
+        }
+        
+        MouseArea {
+            anchors.fill: parent
+            onClicked: {
+                appState.modal = "none"
+                if (appState.isEditing()) {
+                    timerManager.scheduleFocus(contentArea)
+                }
+            }
+        }
+    }
+
+    Rectangle {
+        anchors.centerIn: parent
+        width: 450
+        height: 200
+        color: colors.modalBackground
+        radius: 10
+        border.color: colors.modalBorder
+        border.width: 2
+        visible: appState.modal === "unsavedChanges"
+        z: 201
+        focus: appState.modal === "unsavedChanges"
+        
+        Column {
+            anchors.centerIn: parent
+            spacing: 20
+            
+            Text {
+                text: "You have unsaved changes"
+                font.family: notesManager.config.fontFamily
+                font.pixelSize: 18
+                color: colors.textColor
+                horizontalAlignment: Text.AlignHCenter
+                anchors.horizontalCenter: parent.horizontalCenter
+            }
+            
+            Text {
+                text: "Auto-save is disabled. Save your changes before leaving?"
+                font.family: notesManager.config.fontFamily
+                font.pixelSize: 12
+                color: colors.secondaryText
+                horizontalAlignment: Text.AlignHCenter
+                anchors.horizontalCenter: parent.horizontalCenter
+            }
+            
+            Row {
+                spacing: 15
+                anchors.horizontalCenter: parent.horizontalCenter
+                
+                // Save button
+                Button {
+                    text: "Save (S)"
+                    onClicked: {
+                        saveCurrentNote()
+                        appState.modal = "none"
+                        showGridView()
+                    }
+
+                    background: Rectangle {
+                        color: colors.success
+                        radius: 5
+                    }
+
+                    contentItem: Text {
+                        text: parent.text
+                        color: Qt.darker(parent.background.color, 1.8)
+                        font.family: notesManager.config.fontFamily
+                        font.bold: true
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                }
+
+                // Don't save button
+                Button {
+                    text: "Don't Save (D)"
+                    onClicked: {
+                        appState.modal = "none"
+                        showGridView()
+                    }
+
+                    background: Rectangle {
+                        color: colors.error
+                        radius: 5
+                    }
+
+                    contentItem: Text {
+                        text: parent.text
+                        color: Qt.darker(parent.background.color, 1.8)
+                        font.family: notesManager.config.fontFamily
+                        font.bold: true
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                }
+                
+                // Cancel button
+                Button {
+                    text: "Cancel (Esc)"
+                    onClicked: {
+                        appState.modal = "none"
+                        if (appState.isEditing()) {
+                            timerManager.scheduleFocus(contentArea)
+                        }
+                    }
+
+                    background: Rectangle {
+                        color: colors.cardColor
+                        border.color: colors.borderColor
+                        border.width: 1
+                        radius: 5
+                    }
+
+                    contentItem: Text {
+                        text: parent.text
+                        color: Qt.darker(parent.background.color, 1.8)
                         font.family: notesManager.config.fontFamily
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
@@ -3728,8 +3938,7 @@ ApplicationWindow {
                         Button {
                             text: "← Back (" + notesManager.config.shortcuts.back + ")"
                             onClicked: {
-                                saveCurrentNote()
-                                showGridView()
+                                handleBackNavigation()
                             }
 
                             background: Rectangle {
@@ -3759,10 +3968,10 @@ ApplicationWindow {
                         }
                         
                         Text {
-                            text: "Auto-saved"
+                            text: autoSaveEnabled ? "Auto-save ON" : "Auto-save OFF"
                             font.family: notesManager.config.fontFamily
                             font.pixelSize: 12
-                            color: colors.secondaryText
+                            color: autoSaveEnabled ? colors.secondaryText : colors.error
                             Layout.rightMargin: 15
                         }
                         Button {
@@ -3821,7 +4030,11 @@ ApplicationWindow {
                             
                             onTextChanged: {
                                 currentNote.content = text
-                                unsavedChanges++
+                                
+                                // Don't count changes during initial content loading
+                                if (!loadingContent) {
+                                    unsavedChanges++
+                                }
                                 
                                 // Update title in real-time
                                 if (text.trim()) {
@@ -3842,7 +4055,7 @@ ApplicationWindow {
                                 // Force save if too many unsaved changes (silently)
                                 if (unsavedChanges >= notesManager.config.maxUnsavedChanges) {
                                     saveCurrentNote()
-                                } else {
+                                } else if (autoSaveEnabled) {
                                     // Normal auto-save timer
                                     autoSaveTimer.restart()
                                 }

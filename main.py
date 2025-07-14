@@ -344,6 +344,7 @@ class NotesManager(QAbstractListModel):
             "windowHeight": 1369,
             "maxUnsavedChanges": 50,
             "autoSaveInterval": 1000,
+            "autoSaveEnabled": True,
             "searchDebounceInterval": 300,
             "currentTheme": "githubDark",
             "shortcuts": {
@@ -386,7 +387,8 @@ class NotesManager(QAbstractListModel):
                 "renameCollection": "F2",
                 "showStats": "Ctrl+Space",
                 "increaseColumns": "Ctrl+Up",
-                "decreaseColumns": "Ctrl+Down"
+                "decreaseColumns": "Ctrl+Down",
+                "toggleAutoSave": "Ctrl+Alt+S"
             }
         }
 
@@ -788,6 +790,17 @@ class NotesManager(QAbstractListModel):
                     validated[key] = max(50, val) if key == 'maxUnsavedChanges' else max(100, val)
                 except (ValueError, TypeError):
                     validated[key] = defaults.get(key, 1000)
+
+        # Validate boolean values
+        boolean_keys = ['autoSaveEnabled']
+        for key in boolean_keys:
+            if key in validated:
+                if isinstance(validated[key], bool):
+                    pass  # Already a boolean, keep as is
+                elif isinstance(validated[key], str):
+                    validated[key] = validated[key].lower() in ('true', '1', 'yes', 'on')
+                else:
+                    validated[key] = bool(validated[key])
 
         return validated
 
@@ -1901,6 +1914,14 @@ class NotesManager(QAbstractListModel):
         """Set the font family"""
         if font_family and font_family.strip():
             self._config["fontFamily"] = font_family.strip()
+            self.save_config()
+            self.configChanged.emit()
+    
+    @Slot(bool)
+    def setAutoSaveEnabled(self, enabled):
+        """Update the autoSaveEnabled configuration setting"""
+        if self._config["autoSaveEnabled"] != enabled:
+            self._config["autoSaveEnabled"] = enabled
             self.save_config()
             self.configChanged.emit()
     
