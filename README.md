@@ -33,15 +33,26 @@ python3 -m venv venv && venv\Scripts\activate
 pip install PySide6 && python main.py
 ```
 
+## Configuration
+
+On first run, LEAF automatically creates:
+- `config/config.json` - Main application settings
+- `data/collections.json` - Collection metadata
+- `data/user_themes.json` - Theme definitions (13 built-in themes)
+- `data/font_cache.json` - Font system cache
+
+
 ## Keyboard Shortcuts
 
 ### Core Actions
 - `Ctrl+N` - New note
 - `Ctrl+S` - Save
+- `Ctrl+Alt+S` - Toggle auto-save
 - `Ctrl+F` - Search
 - `Ctrl+Q` - Quit
 - `F1` - Help
 - `Escape` - Back/Cancel
+- `Ctrl+Space` - Show statistics
 
 ### Navigation
 - `Arrow Keys` or `H/J/K/L` - Navigate notes (vim-style)
@@ -77,7 +88,7 @@ pip install PySide6 && python main.py
 
 ### Display
 - `Ctrl+W` - Fullscreen
-- `Ctrl+1` - Optimize card width
+- `Ctrl+1` - Auto-optimize layout
 - `Ctrl+Up/Down` - More/fewer columns
 - `Ctrl+Shift+Up/Down` - Card height
 

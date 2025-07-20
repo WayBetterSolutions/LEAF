@@ -352,7 +352,6 @@ ApplicationWindow {
     }
     
     // Delete confirmation shortcuts
-
     Shortcut {
         sequences: notesManager.config.shortcuts.confirmDelete
         enabled: appState.modal === "delete"
@@ -4069,9 +4068,9 @@ ApplicationWindow {
                                     if (firstLine.length > 50) {
                                         firstLine = firstLine.substring(0, 47) + "..."
                                     }
-                                    currentNote.title = firstLine || "Untitled Note"
+                                    currentNote.title = firstLine || "Untitled"
                                 } else {
-                                    currentNote.title = "New Note"
+                                    currentNote.title = "Untitled"
                                 }
                                 
                                 // Trigger update for the title display
