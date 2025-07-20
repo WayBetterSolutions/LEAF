@@ -6,7 +6,7 @@
 
 **Literature Environment & Archival Framework**
 
-A novel and userfreindly keyboard-driven note-taking application designed for writers-- especially those wanting a simple distraction free space. Built with Python and Qt, L.E.A.F. integrates seamlessly with writer deck workflows, producing lightning-fast note capture, flexible organization and extensive customization.
+test A novel and userfreindly keyboard-driven note-taking application designed for writers-- especially those wanting a simple distraction free space. Built with Python and Qt, L.E.A.F. integrates seamlessly with writer deck workflows, producing lightning-fast note capture, flexible organization and extensive customization.
 
 **Key Features:**
 - **Keyboard-First Design** - Navigate, edit, and organize with shortcuts
@@ -28,9 +28,12 @@ pip install PySide6 && python main.py
 
 ### Windows
 ```bash
-git clone https://github.com/RobDeGeorge/LEAF.git && cd LEAF
-python3 -m venv venv && venv\Scripts\activate
-pip install PySide6 && python main.py
+git clone https://github.com/RobDeGeorge/LEAF.git
+cd LEAF
+python3 -m venv venv
+venv\Scripts\activate
+pip install PySide6
+python main.py
 ```
 
 ## Configuration
