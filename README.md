@@ -21,14 +21,14 @@ A novel and userfreindly keyboard-driven note-taking application designed for wr
 
 ### Linux/Mac
 ```bash
-git clone https://github.com/RobDeGeorge/LEAF.git && cd LEAF
+git clone https://github.com/WayBetterSolutions/LEAF.git && cd LEAF
 python3 -m venv venv && source venv/bin/activate
 pip install PySide6 && python main.py
 ```
 
 ### Windows
 ```bash
-git clone https://github.com/RobDeGeorge/LEAF.git
+git clone https://github.com/WayBetterSolutions/LEAF.git
 cd LEAF
 python3 -m venv venv
 venv\Scripts\activate
