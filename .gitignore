@@ -13,3 +13,4 @@ run.sh
 # User data (exclude from git)
 data/
 config/
+archive/
